@@ -8,17 +8,49 @@
 
 This repository contains the official **explainable machine learning (ML) pipeline** for classifying glioma malignancy grades (Low-Grade Glioma (LGG) vs. High-Grade Glioma (HGG)) and stratifying tract-specific white matter (WM) disruption, using personalized, tumor-masked structural connectivity networks (connectograms).
 
-> ### **Authors**
-> **Pamela Franco** [![ORCID](https://img.shields.io/badge/ORCID-0000--0001--7629--3653-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0000-0001-7629-3653)¹
-> **Cristian Montalba** [![ORCID](https://img.shields.io/badge/ORCID-0000--0003--3370--0233-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0000-0003-3370-0233)²'³'⁴
-> **Ignacio Espinoza** [![ORCID](https://img.shields.io/badge/ORCID-0000--0003--2400--4498-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0000-0003-2400-4498)⁵
-> **M. Daniela Cornejo** [![ORCID](https://img.shields.io/badge/ORCID-0009--0003--0425--5721-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0003-0425-5721)⁵'⁶
-> **Francisco Torres** [![ORCID](https://img.shields.io/badge/ORCID-0000--0002--0003--2446-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0000-0002-0003-2446)²'⁷
-> **Carlos Bennett** [![ORCID](https://img.shields.io/badge/ORCID-0009--0007--1434--273X-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0009-0007-1434-273X)⁸
-> **Steren Chabert** [![ORCID](https://img.shields.io/badge/ORCID-0000--0002--2890--5077-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0000-0002-2890-5077)²'⁹'¹⁰
-> **Rodrigo Salas** [![ORCID](https://img.shields.io/badge/ORCID-0000--0002--0350--6811-A6CE39?logo=orcid&logoColor=white)](https://orcid.org/0000-0002-0350-6811)²'⁸'⁹
+### Authors & Affiliations
 
->(¹Faculty of Engineering / Universidad Andrés Bello, ²Biomedical Imaging Center / School of Medicine / Pontificia Universidad Católica de Chile, ³Millennium Institute for Intelligent Healthcare Engineering - iHEALTH, ⁴Radiology Department / School of Medicine / Pontificia Universidad Católica de Chile, ⁵Institute of Physics / Pontificia Universidad Católica de Chile, ⁶Department of Psychiatry / School of Medicine / Pontificia Universidad Católica de Chile, ⁷Radiology Department / Hospital Carlos Van Buren, ⁸Neurosurgery Department / Hospital Carlos Van Buren, ⁹Biomedical Engineering School / Faculty of Engineering/ Universidad de Valparaíso, ¹⁰Center of Interdisciplinary Biomedical and Engineering Research for Health - MEDING / Universidad de Valparaíso)*
+<p align="left">
+  <strong>Pamela Franco</strong> <a href="https://orcid.org/0000-0001-7629-3653"><img src="https://img.shields.io/badge/ORCID-0000--0001--7629--3653-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <small>🔹 Faculty of Engineering, Universidad Andrés Bello, Santiago, Chile.</small>
+</p>
+
+<p align="left">
+  <strong>Cristian Montalba</strong> <a href="https://orcid.org/0000-0003-3370-0233"><img src="https://img.shields.io/badge/ORCID-0000--0003--3370--0233-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <small>🔹 Biomedical Imaging Center / Radiology Department, Pontificia Universidad Católica de Chile<br>🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+</p>
+
+<p align="left">
+  <strong>Ignacio Espinoza</strong> <a href="https://orcid.org/0000-0003-2400-4498"><img src="https://img.shields.io/badge/ORCID-0000--0003--2400--4498-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <small>🔹 Institute of Physics, Pontificia Universidad Católica de Chile.</small>
+</p>
+
+<p align="left">
+  <strong>M. Daniela Cornejo</strong> <a href="https://orcid.org/0009-0003-0425-5721"><img src="https://img.shields.io/badge/ORCID-0009--0003--0425--5721-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <small>🔹 Institute of Physics / Department of Psychiatry, Pontificia Universidad Católica de Chile.</small>
+</p>
+
+<p align="left">
+  <strong>Francisco Torres</strong> <a href="https://orcid.org/0000-0002-0003-2446"><img src="https://img.shields.io/badge/ORCID-0000--0002--0003--2446-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <small>🔹 Biomedical Imaging Center, Pontificia Universidad Católica de Chile<br>🔹 Radiology Department, Hospital Carlos Van Buren</small>
+</p>
+
+<p align="left">
+  <strong>Carlos Bennett</strong> <a href="https://orcid.org/0009-0007-1434-273X"><img src="https://img.shields.io/badge/ORCID-0009--0007--1434--273X-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <small>🔹 Neurosurgery Department, Hospital Carlos Van Buren</small>
+</p>
+
+<p align="left">
+  <strong>Steren Chabert</strong> <a href="https://orcid.org/0000-0002-2890-5077"><img src="https://img.shields.io/badge/ORCID-0000--0002--2890--5077-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <small>🔹 Biomedical Imaging Center, Pontificia Universidad Católica de Chile<br>🔹 Biomedical Engineering School / Center MEDING, Universidad de Valparaíso<br>🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+</p>
+
+<p align="left">
+  <strong>Rodrigo Salas</strong> ✉️ <a href="https://orcid.org/0000-0002-0350-6811"><img src="https://img.shields.io/badge/ORCID-0000--0002--0350--6811-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <small>🔹 Biomedical Engineering School, Universidad de Valparaíso<br>🔹 Neurosurgery Department, Hospital Carlos Van Buren<br>🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+</p>
+
+---
 
 The present proof-of-concept study aims to demonstrate an explainable ML pipeline utilizing personalized structural connectivity networks to stratify glioma malignancy grades (LGG, WHO 2 vs. HGG, WHO: 3-4) and map associated WM disruption. By dynamically modifying standardized anatomical templates to strictly exclude tumor-encroached regions, we construct individualized structural connectivity matrices, or connectograms, via advanced probabilistic tractography. Through this approach, we seek to isolate specific macrostructural and graph-theoretic biomarkers capable of discriminating between tumor grades, ultimately providing a highly precise, individualized computational framework for presurgical planning and therapeutic monitoring.
 
