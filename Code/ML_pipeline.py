@@ -1,74 +1,163 @@
 ###############################################################################
 # This code was developed by Dr. Pamela Franco as part of the project 
-# "Feasibility of Tumor-Masked Structural Connectomics and Explainable Machine 
-# Learning for Assessing White Matter Disruption in Gliomas: A Pilot Study". 
+# "Quantifying White Matter Disruption in Gliomas via Tumor-Masked Structural 
+# Connectomics and Explainable Machine Learning: A Pilot Study ". 
 #
-# Implements Strict Repeated/Nested Cross-Validation while
-# preserving the Post-Hoc Data Leakage Analysis and Comparative ROC Curves.
+# This code performs a comprehensive machine learning pipeline tailored for 
+# CLASSIFICATION analysis on glioma tractography and radiomics data.
 #
-#   Author:     Dr. Pamela Franco (Modified for Rigorous Nested CV & Leakage)
-#   Time-stamp: 2026-06-03
-#   Repository: https://github.com/pamelaFranco/glioma-ml-tractography
-#   E-mail:     pamela.franco@unab.cl / pafranco@uc.cl
+#   Author:     Dr. Pamela Franco
+#   Time-stamp:  2026-05-25
+#   Repository:  https://github.com/pamelaFranco/glioma-ml-tractography
+#   E-mail:      pamela.franco@unab.cl / pafranco@uc.cl
 ###############################################################################
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import re
-from sklearn.model_selection import StratifiedKFold, GridSearchCV, cross_val_score
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.feature_selection import SequentialFeatureSelector
+from sklearn.feature_selection import SequentialFeatureSelector, SelectKBest, f_classif
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, roc_curve, auc
 from sklearn.preprocessing import StandardScaler
 from sklearn.manifold import TSNE
 import numpy as np
 import seaborn as sns
 import os 
+from sklearn.cluster import AgglomerativeClustering
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy import stats
 import shap
 
+# Plot settings - Scientific configuration for Matplotlib using LaTeX
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 
 ###############################################################################
-# CUSTOM DATA AND RESULTS PATH CONFIGURATION
-DATA_PATH = r"C:\Users\pfran\Desktop\Connectomics Github\Dataset\dataset_conectomica_with_labels.csv"
-RESULTS_PATH = r"C:\Users\pfran\Desktop\Connectomics Github\Results"
+# Load data
+path = r'C:\Users\pfran\Desktop\Connectomics Github\Dataset'  
+data_filename = 'dataset_conectomica_with_labels.csv'
+newData = os.path.join(path, data_filename)  
 
-# Ensure results directory exists
-os.makedirs(RESULTS_PATH, exist_ok=True)
+RESULTS_PATH = r'C:\Users\pfran\Desktop\Connectomics Github\Results'
+if not os.path.exists(RESULTS_PATH):
+    os.makedirs(RESULTS_PATH)
 
-if not os.path.exists(DATA_PATH):
-    print(f"Generating mock synthetic data at {DATA_PATH} to simulate dataset constraints (n=35, p=307)...")
-    os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
-    np.random.seed(42)
-    features = [f"edge_{i}" for i in range(307)]
-    df_mock = pd.DataFrame(np.random.randn(35, 307), columns=features)
-    df_mock['edge_constant_1'] = 0.0
-    df_mock['edge_constant_2'] = 1.5
-    df_mock['target'] = np.random.choice([0, 1], size=35, p=[0.57, 0.43]) # approx 20 LGG, 15 HGG
-    df_mock.to_csv(DATA_PATH, index=False)
+# If the absolute path does not exist locally, search in the current working directory
+if not os.path.exists(newData):
+    newData = data_filename
+
+# Reading the dataset
+df_raw = pd.read_csv(newData)
+
+# SAFE TARGET AND FEATURES EXTRACTION (ERROR FIXED) ---
+# Extract the target array directly using the correct column name
+label = df_raw['labels'].values
+
+# Drop target and metadata safely using errors='ignore' to avoid KeyError exceptions
+features = df_raw.drop(columns=['labels', 'Patient_ID'], errors='ignore')
+
+# Encode labels to integers if they are imported as objects or strings
+if label.dtype == 'object':
+    label, _ = pd.factorize(label)
+
+# 1. Clean feature names by removing special characters immediately
+features = features.rename(columns=lambda x: re.sub('[^*A-Za-z0-9_ ]+', '', x))
+feature_names = list(features.columns)
+
+# 2. Check and Impute missing values upfront
+if features.isnull().sum().any():
+    print("Warning: Missing values detected upfront. Imputing with the column mean.")
+    features = features.fillna(features.mean())
+
+# 3. Handle infinite values just in case they exist in tractography metrics
+if np.isinf(features).values.any():
+    print("Warning: Infinite values detected. Replacing with NaNs and imputing.")
+    features = features.replace([np.inf, -np.inf], np.nan)
+    features = features.fillna(features.mean())
+
+# 4. Remove constant features (zero variance) to prevent NaNs or division by zero in selection
+constant_features = [col for col in features.columns if features[col].std() == 0]
+if constant_features:
+    print(f"Warning: Detected {len(constant_features)} constant features. Removing them.")
+    features = features.drop(columns=constant_features)
+    feature_names = list(features.columns)
+
+
+X_clean = features
+y = pd.Series(label)
+
+# Scale all features globally for algorithms like t-SNE / Logistic Regression
+scaler = StandardScaler()
+features_scaled = pd.DataFrame(scaler.fit_transform(features), columns=features.columns)
 
 ###############################################################################
-# 1. DATA LOADING AND CURATION
-print(" Loading and sanitizing dataset...")
-df = pd.read_csv(DATA_PATH)
+# Hierarchical Clustering to visualize correlations between features
+correlation_matrix = features_scaled.corr()
 
-# Sanitize column headers (remove special characters and spaces)
-df.columns = [re.sub(r'[^\w\s]', '', col).strip().replace(' ', '_') for col in df.columns]
+if correlation_matrix.isnull().any().any():
+    correlation_matrix = correlation_matrix.fillna(0)
 
-# Separate features and target labels
-X = df.drop(columns=['target'])
-y = df['target']
+distance_threshold = 6.5 
 
-# Dynamic imputation of missing/infinite values using column-specific means
-X = X.replace([np.inf, -np.inf], np.nan)
-X = X.fillna(X.mean())
+model = AgglomerativeClustering(n_clusters=None, linkage='average', distance_threshold=distance_threshold)
+cluster_cols = model.fit_predict(correlation_matrix.T)  
+cluster_rows = model.fit_predict(correlation_matrix)  
 
-# Constant feature pruning (Zero-Variance Filter)
-constant_filter = X.var() == 0
-X_clean = X.loc[:, ~constant_filter]
-print(f"Original features: {X.shape[1]} -> Remaining after constant pruning: {X_clean.shape[1]}")
+n_clusters = len(np.unique(cluster_cols)) 
 
+# CORRECCIÓN: Uso de la nueva sintaxis de colormaps de Matplotlib para evitar DeprecationWarning
+colors = mpl.colormaps['plasma'].resampled(n_clusters)
+
+col_colors = [colors(i) for i in cluster_cols]
+row_colors = [colors(i) for i in cluster_rows]
+
+cluster_features = [sum(np.array(cluster_cols) == i) for i in range(n_clusters)]
+cluster_texts = [f"Cluster {i+1}: {cluster_features[i]:02d} features" for i in range(n_clusters)]
+
+Z = linkage(correlation_matrix, method='average', metric='euclidean')
+
+plt.figure(figsize=(20, 8))
+dendrogram(Z, labels=correlation_matrix.columns, color_threshold=distance_threshold)
+plt.axhline(y=distance_threshold, color='r', linestyle='--', label=f'Distance Threshold = {distance_threshold}')  
+plt.xlabel('Features')
+plt.ylabel('Distance')
+# Guardado adaptado para usar el directorio de resultados estructurado
+plt.savefig(os.path.join(RESULTS_PATH, 'dendogram.png'), format='png')
+plt.show()
+
+g = sns.clustermap(correlation_matrix, cmap='YlGnBu',
+                   figsize=(30, 30),  
+                   annot=False,  
+                   xticklabels=True,  
+                   yticklabels=True,  
+                   row_cluster=True,  
+                   col_cluster=True,  
+                   tree_kws={'linewidths': 2},  
+                   row_colors=row_colors,  
+                   col_colors=col_colors  
+                   )
+
+g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xticklabels(), rotation=90, fontsize=8)
+g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_yticklabels(), fontsize=8)
+g.ax_cbar.set_position((0.9, .02, .03, .1))
+g.ax_cbar.set_ylabel('Correlation (R)')
+
+y_position = 0.94  
+for i, cluster_text in enumerate(cluster_texts):
+    if i == len(cluster_texts) - 1:  
+        plt.text(0.9, y_position, cluster_text, horizontalalignment='left', verticalalignment='top',
+                 transform=g.fig.transFigure, fontsize=10, bbox=dict(facecolor=colors(i), edgecolor='none', boxstyle='square,pad=1'),
+                 color='black')  
+    else:
+        plt.text(0.9, y_position, cluster_text, horizontalalignment='left', verticalalignment='top',
+                 transform=g.fig.transFigure, fontsize=10, bbox=dict(facecolor=colors(i), edgecolor='none', boxstyle='square,pad=1'),
+                 color='white')  
+    y_position -= 0.012  
+
+plt.savefig(os.path.join(RESULTS_PATH, 'clustermap.png'), format='png', dpi=300)  
+plt.show()
 ###############################################################################
 # 2. GLOBAL FEATURE SELECTION (For Biased Pipeline / Leakage Analysis)
 print("\n Computing Global Feature Selection to simulate Data Leakage...")
