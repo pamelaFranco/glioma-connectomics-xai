@@ -30,8 +30,8 @@ The pipeline implements an advanced neuroimaging and ML workflow:
 1. **Diffusion Preprocessing**: Geometry/motion correction via Gaussian Processes and brain masking.
 2. **Tumor-Masked Atlas Adaptation**: Voxel-wise intersection and automatic exclusion of tumor-encroached regions from the JHU ICBM-DTI-81 atlas to avoid confounding signals.
 3. **Probabilistic Tractography**: Fiber orientation modeling via BEDPOSTX (up to 2 crossing fibers per voxel) and network streamline propagation via ProbtrackX2.
-4. **Connectomic Graph Construction & Multi-Level Profiling:** Structural connectivity matrices are mapped using fiber streamline counts between regions of interest (ROIs) using the standard JHU White-Matter Tractography Atlas ($50$ predefined anatomical tracts). These raw adjacency matrices are programmatically analyzed via a specialized automated MATLAB framework to construct individual brain graphs and compute a comprehensive, multi-level topological profile. For each patient, the pipeline extracts and structures parameters across three independent levels: Construction descriptors (Matrix Size, Max/Mean Weights), Global topological network metrics (Edge counts, Density, Total Weight, Global Efficiency), and Local nodal metrics (Nodal Strength, Nodal Degree, PageRank, Closeness Centrality, Betweenness Centrality, and Clustering Coefficient) calculated individually for each of the $50$ ROIs. The resulting high-dimensional topological fingerprints are consolidated and exported into an integrated master dataset ($35$ Patients $\times$ $307$ Columns) for downstream machine learning pipelines.
-5. **Two-Stage Feature Selection & Stratified Repeated Nested CV:** The high-dimensional structural connectivity vectors ($p = 307$ features) are processed through an exploratory statistical screening and an optimization framework. First, zero-variance constant features are programmatically pruned. In **Stage 1**, a univariate ANOVA $F$-test (`SelectKBest` via `f_classif`) evaluates the statistical significance of mean differences across target classes on the training split, truncating the search space down to the top $100$ features. In **Stage 2**, a wrapper-based Forward Sequential Feature Selection (SFS) loop driven by an optimized `RandomForestClassifier` isolates the absolute minimal, non-redundant optimal subset of graph metrics. Finally, the generalizability of the optimized subspace is evaluated using a robust **Repeated Nested 5-Fold Stratified CV** framework ($10$ independent random repetitions, $50$ distinct outer evaluation folds) with hyperparameter optimization (`GridSearchCV`) isolated in the inner loops. Predictive insights are complemented by game-theoretic tree-based interpretability through SHAP summary mapping and multi-dimensional t-SNE space analysis.
+4. **Connectomic Graph Construction & Multi-Level Profiling:** Structural connectivity matrices are mapped using fiber streamline counts between regions of interest (ROIs) derived from the standard JHU ICBM-DTI-81 White-Matter Labels Atlas ($50$ predefined anatomical tracts). These raw adjacency matrices are programmatically analyzed via a specialized automated MATLAB framework using native graph-theoretical functions to construct individual brain graphs and compute a comprehensive topological profile. For each patient, the pipeline extracts parameters across three independent levels: matrix construction descriptors, macro-topological global network metrics, and local nodal/ROI metrics, resulting in a consolidated master dataset ($35$ Patients $\times$ $307$ Columns) for downstream machine learning pipelines.
+5. **Two-Stage Feature Selection & Stratified Validation:** The high-dimensional feature vectors ($p = 307$) are processed through a strict optimization framework. First, zero-variance constant features are programmatically pruned. In **Stage 1 (Filtering)**, a univariate ANOVA $F$-test evaluates the statistical significance of mean differences across target classes on the training split, truncating the search space down to the top $100$ features. In **Stage 2 (Wrapper)**, a Forward Sequential Feature Selection (SFS) loop driven by an optimized `RandomForestClassifier` isolates the absolute minimal, non-redundant optimal subset of graph metrics. The generalizability of the pipeline is evaluated using a robust **5-Fold Stratified Cross-Validation** framework, comparing a Global Feature Selection architecture against a strict Unbiased Isolated setup to mathematically assess and control for selection bias (data leakage). Predictive insights are complemented by game-theoretic tree-based interpretability through SHAP summary mapping and multi-dimensional t-SNE space analysis.
 ---
 
 ## Repository Contents
@@ -75,12 +75,12 @@ Given the tractography and structural network focus of this manuscript, the repo
 
 ## Connectome Construction & Graph Theory
 
-* **Node Definition ($V$):** Remaining non-invaded white matter (WM) structures ($50$ target regions of interest) are derived from the *JHU ICBM-DTI-81 White-Matter Labels Atlas* after applying dynamic, patient-specific tumor masking to exclude tumor-encroached regions.
+* **Node Definition ($V$):** Remaining non-invaded white matter (WM) structures ($50$ target regions of interest) are derived from the *JHU ICBM-DTI-81 White-Matter Labels Atlas* after applying dynamic, patient-specific tumor masking to strictly exclude tumor-encroached regions.
 * **Streamline Propagation & Edge Definition ($E$):** 500 probabilistic samples per voxel are generated via FSL's `ProbtrackX2` to construct customized streamline count-based structural connectivity adjacency matrices.
-* **Network Metrics & Feature Extraction:** The structural brain graphs are processed using `NetworkX` and MATLAB to extract a comprehensive multi-level profile ($p = 307$ total topological features per patient after removing constant identifiers):
-  * *Raw Edge Descriptors:* Symmetrized connectivity matrix coefficients.
-  * *Global Network Topology:* Global efficiency, network density, transitivity, and average clustering coefficient.
-  * *Local Nodal Characterization:* ROI-specific metrics including node degree, betweenness centrality, closeness centrality, nodal strength, clustering coefficient, and PageRank scores to map precise spatial WM integrity.
+* **Network Metrics & Feature Extraction:** The structural brain graphs are processed via a specialized MATLAB computational framework using native graph functions to extract a comprehensive multi-level profile ($p = 307$ total topological features per patient after removing constant identifiers):
+  * *Raw Matrix Construction Descriptors:* Base characteristics including Matrix Size, Max Weights, and Mean Weights.
+  * *Global Network Topology:* Total Edge counts, Network Density, Total Weight, and Global Efficiency.
+  * *Local Nodal Characterization:* ROI-specific topological metrics including Nodal Strength, Nodal Degree, PageRank, Closeness Centrality, Betweenness Centrality, and Clustering Coefficient calculated individually for each of the $50$ ROIs to map precise spatial WM integrity.
 
 ---
 
@@ -89,10 +89,10 @@ Given the tractography and structural network focus of this manuscript, the repo
 The machine learning core is engineered to handle the high-dimensional structural connectivity vectors derived from personalized, tumor-masked brain graphs.
 
 ### 1. Two-Stage Feature Selection and Dimensionality Reduction
-* **Global Standardization & Data Pruning:** Features derived from the structural connectivity matrices are globally scaled using a standard Z-score transformation (`StandardScaler`) prior to data splitting. To prevent downstream mathematical instability during correlation matrix generation, zero-variance constant features are automatically identified and removed.
+* **Global Standardization & Data Pruning:** Features derived from the structural connectivity matrices are scaled using a standard Z-score transformation (`StandardScaler`) prior to data splitting. Constant features with zero variance are automatically identified and removed to prevent downstream mathematical instability.
 * **Hierarchical Collinearity Mapping:** Features are systematically analyzed using average linkage and Euclidean distance. The pipeline maps and visualizes topographical collinearity and structural redundancy among network edges using a predefined cophenetic distance threshold of $6.5$.
-* **Stage 1 (Univariate ANOVA Filtering):** A univariate ANOVA $F$-test (`SelectKBest` via `f_classif`) is applied across the aggregated training partition ($80\%$ of the dataset). This stage filters out noisy, non-informative variables by evaluating the significance of mean differences across discrete classes, truncating the feature search space down to the top $100$ most discriminative metrics.
-* **Stage 2 (Forward Sequential Feature Selection):** A wrapper-based stepwise feature selection loop is executed on the $100$ pre-filtered features over a 5-fold cross-validation (CV) split on the training data. Driven by an optimized base Random Forest (RF) Classifier, features are added sequentially up to 15 combinations to isolate the absolute minimal, non-redundant optimal subset of structural connectivity metrics that maximizes classification accuracy. This extracts a single optimized subspace ($\text{Argmax}[\text{Accuracy}]$) which is frozen for downstream evaluation.
+* **Stage 1 (Univariate ANOVA Filtering):** A univariate ANOVA $F$-test (`SelectKBest` via `f_classif`) is applied across the training partition. This stage filters out noisy, non-informative variables by evaluating the significance of mean differences across discrete classes, truncating the feature search space down to the top $100$ most discriminative metrics.
+* **Stage 2 (Forward Sequential Feature Selection):** A wrapper-based stepwise feature selection loop is executed on the $100$ pre-filtered features over a 5-fold cross-validation split on the training data. Driven by an optimized base Random Forest (RF) Classifier, features are added sequentially up to 15 combinations to isolate the absolute minimal, non-redundant optimal subset of structural connectivity metrics that maximizes classification accuracy ($\text{Argmax}[\text{Accuracy}]$).
 
 ### 2. Models Evaluated
 * **Linear Exploratory Screening:** `LogisticRegression` with $L_2$ regularization is executed during the initial global screening phase to extract absolute log-odds coefficient weights and build a Pareto chart of the top 20 features against an 80% cumulative threshold.
@@ -100,8 +100,8 @@ The machine learning core is engineered to handle the high-dimensional structura
 
 ### 3. Model Selection, Hyperparameter Tuning & Validation
 * **Baseline Grid Optimization:** Prior to the Sequential Feature Selection (SFS) loop, `GridSearchCV` is implemented over a 5-fold stratified CV split on the training data to systematically evaluate combinations of tree-based hyperparameters—including the number of estimators (`n_estimators`), maximum tree depth (`max_depth`), minimum splitting criteria (`min_samples_split`), and maximum feature sub-sampling strategies (`max_features`).
-* **Repeated Nested 5-Fold Stratified CV:** Implemented with $10$ independent random repetitions (generating $50$ distinct outer evaluation folds) to ensure strict class-balance control. In this framework, the outer loops evaluate stable model generalizability over the optimal feature subspace, while the inner loops (`GridSearchCV`) isolate hyperparameter tuning **strictly over the pre-selected static feature subspace** obtained from the SFS phase, rather than re-running the feature selection wrapper within each individual outer fold split.
-* **Classification Performance Metrics:** Diagnostic robustness is tracked across all $50$ folds using Accuracy, Precision, Sensitivity (Recall), and F1-Score (calculated via macro-averaging for robust class-balance control).
+* **Validation Strategy:** Evaluation is carried out using a **5-Fold Stratified Cross-Validation** framework. Generalizability and evaluation stability are tested across both classification setups to contrast model performance under isolated execution branches against global optimization baselines.
+* **Classification Performance Metrics:** Diagnostic robustness is tracked across all folds using Accuracy, Precision, Sensitivity (Recall), and F1-Score (calculated via macro-averaging for robust class-balance control).
 
 ### 4. Post-Hoc Data Leakage Analysis
 To guarantee the scientific integrity and reproducibility of the results, the pipeline includes a strict post-hoc diagnostic test designed to quantify and detect potential selection bias (*data leakage*).
@@ -178,13 +178,13 @@ This work was supported by the National Agency for Research and Development (ANI
 ---
 ## Citation
 
-If you find this pipeline useful for your research, please cite our preliminary work prepared for the ESMRMB 2026 conference:
+If you find this pipeline useful for your research, please cite our preliminary work prepared for Neuroradiology:
 
 ```bibtex
 @inproceedings{montalba2026quantifying,
-  title={Feasibility of Tumor-Masked Structural Connectomics and Explainable Machine Learning for Assessing White Matter Disruption in Gliomas: A Pilot Study},
-  author={Montalba, Cristian and Espinoza, Ignacio and Cornejo, M. Daniela and Torres, Francisco and Bennett, Carlos and Chabert, Steren trade and Salas, Rodrigo and Franco, Pamela},
-  booktitle={Submitted to the 43rd Annual Scientific Meeting of the European Society for Magnetic Resonance in Medicine and Biology (ESMRMB 2026)},
+  title={Quantifying White Matter Disruption in Gliomas via Tumor-Masked Structural Connectomics and Explainable Machine Learning: A Pilot Study},
+  author={Franco, Pamela and Montalba, Cristian and Espinoza, Ignacio and Cornejo, M. Daniela and Torres, Francisco and Bennett, Carlos and Chabert, Steren trade and Salas, Rodrigo},
+  booktitle={Submitted to Neuroradiology},
   year={2026},
   note={Abstract under review}
 }
