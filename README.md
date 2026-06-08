@@ -32,7 +32,7 @@ This repository contains the official **explainable machine learning (ML) pipeli
 
 <p align="left">
   <strong>Francisco Torres</strong> <a href="https://orcid.org/0000-0002-0003-2446"><img src="https://img.shields.io/badge/ORCID-0000--0002--0003--2446-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>🔹 Biomedical Imaging Center, Pontificia Universidad Católica de Chile<br>🔹 Radiology Department, Hospital Carlos Van Buren</small>
+  <small>🔹 Radiology Department, Hospital Carlos Van Buren</small>
 </p>
 
 <p align="left">
@@ -42,12 +42,12 @@ This repository contains the official **explainable machine learning (ML) pipeli
 
 <p align="left">
   <strong>Steren Chabert</strong> <a href="https://orcid.org/0000-0002-2890-5077"><img src="https://img.shields.io/badge/ORCID-0000--0002--2890--5077-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>🔹 Biomedical Imaging Center, Pontificia Universidad Católica de Chile<br>🔹 Biomedical Engineering School / Center MEDING, Universidad de Valparaíso<br>🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+  <small>🔹 Biomedical Engineering School / Center MEDING, Universidad de Valparaíso<br>🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
 </p>
 
 <p align="left">
   <strong>Rodrigo Salas</strong> <a href="https://orcid.org/0000-0002-0350-6811"><img src="https://img.shields.io/badge/ORCID-0000--0002--0350--6811-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>🔹 Biomedical Engineering School, Universidad de Valparaíso<br>🔹 Neurosurgery Department, Hospital Carlos Van Buren<br>🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+  <small>🔹 Biomedical Engineering School / Center MEDING, Universidad de Valparaíso🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
 </p>
 
 ---
