@@ -77,22 +77,25 @@ Given the tractography and structural network focus of this manuscript, the repo
 │   └── requirements.txt                       # Required Python packages and dependencies.
 ├── Dataset/
 └── dataset_conectomica_with_labels.csv        # Multi-level connectomic graph features from JHU atlas (307 features/patient).
-├── Results/                                   # Automatically generated pipeline outputs and diagnostics.
-│   ├── Data Leakage.png                       # Comparative analysis showing the effect of data leakage on validation metrics.
-│   ├── HGG_Connectogram.png                   # Average connectogram profile for High-Grade Glioma cohort.
-│   ├── LGG_Connectogram.png                   # Average connectogram profile for Low-Grade Glioma cohort.
-│   ├── accuracy_vs_features.png               # SFS trajectory optimization curve mapping Accuracy vs. feature subsets.
-│   ├── clustermap.png                         # Dual-axis hierarchical correlation matrix with average-linkage cluster boundaries.
-│   ├── dendogram.png                          # Hierarchical clustering tree mapping structural feature redundancies (Threshold = 6.5).
-│   ├── feature_importance_classification.png  # Gini feature importance weights from the SFS-selected minimal subset.
-│   ├── logistic_feature_importance.png        # Initial screening weights computed using absolute coefficients from L2-Logistic Regression.
-│   ├── logistic_feature_importance_pareto_chart.png # Pareto distribution ranking of the Top 20 features against the 80% threshold.
-│   ├── rf_3d_feature_space_topology.png       # Three-dimensional topological mapping of the isolated optimal feature subspace.
-│   ├── rf_feature_space_interaction.png       # Scatter plot mapping the interaction space of the top 2 selected features.
-│   ├── shap_summary_plot_classification.png   # SHAP summary plot mapping local tree-based feature attributions.
-│   ├── shap_waterfall_classification.png      # SHAP waterfall plot illustrating local additive attribution for clinical cases.
-│   ├── tsne_after_selection.png               # Low-dimensional optimized t-SNE embedding of the SFS selected subspace.
-│   └── tsne_before_selection.png              # High-dimensional t-SNE embedding of the entire filtered feature space.
+ space.
+├── Results/                                                     # Automatically generated pipeline outputs and diagnostics.
+│   ├── clustermap.png                                           # Dual-axis hierarchical correlation matrix with average-linkage cluster boundaries.
+│   ├── comparative_roc_curve.png                                # ROC curves contrasting the biased pipeline vs. strictly isolated cross-validation.
+│   ├── data_leakage_statistical_analysis.csv                    # Quantified metrics and inflation delta caused by upfront feature selection.
+│   ├── decision_boundary_surface.png                            # 2D decision boundary plot showing classification surfaces of the top 2 features.
+│   ├── dendogram.png                                            # Hierarchical clustering tree mapping structural feature redundancies (Threshold = 6.5).
+│   ├── logistic_regression_pareto_ranking.png                   # Pareto distribution ranking of the top 20 baseline features from L2-Logistic Regression.
+│   ├── pipeline_fold_metrics_and_hyperparameters.csv            # Tabular breakdown of cross-validation metrics and best estimator configurations per fold.
+│   ├── random_forest_individual_tree.png                        # Visual graph structure/architecture layout of a single decision tree estimator.
+│   ├── sfs_feature_accuracy_curve.png                           # SFS trajectory optimization curve mapping internal CV accuracy vs. feature count.
+│   ├── shap_1_summary_scatter.png                               # SHAP density scatter plot mapping local attributions within the parsimonious subspace.
+│   ├── shap_2_summary_bar.png                                   # Global feature importance ranking calculated via mean absolute SHAP values.
+│   ├── shap_3_dependence_1_Clustering_Medial_lemniscus_L.png   # SHAP dependency risk profile for the Medial Lemniscus clustering metric.
+│   ├── shap_3_dependence_2_Strength_Sagittal_stratum_L.png      # SHAP dependency risk profile for the Sagittal Stratum strength metric.
+│   ├── shap_4_local_patient_force.png                           # SHAP local force plot breaking down additive attributions for a single clinical case.
+│   ├── shap_5_decision_trajectory.png                           # SHAP decision plot illustrating feature attribution accumulation paths.
+│   ├── tsne_class_segregation_comparison.png                    # Side-by-side t-SNE embedding comparing high-dimensional vs. isolated feature spaces.
+│   └── validation_confusion_matrices.png                        # Comparative cumulative confusion matrices for the biased vs. unbiased pipelines.
 └── README.md                                  # Project documentation and laboratory guidelines.
 
 ```
