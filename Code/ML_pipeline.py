@@ -31,9 +31,9 @@ from sklearn.tree import export_graphviz
 import graphviz
 import shap
 
-# Plot settings - Scientific configuration for Matplotlib using LaTeX
-plt.rcParams['text.usetex'] = True
-plt.rcParams['font.family'] = 'serif'
+# Reset mathtext settings to default to avoid rendering crashes
+plt.rcParams['text.usetex'] = False
+plt.rcParams['font.family'] = 'sans-serif'
 
 ###############################################################################
 # SECTION 2.5.1: LOAD DATA & PREPROCESSING
@@ -86,9 +86,13 @@ scaler_exploratory = StandardScaler()
 X_scaled_exploratory = pd.DataFrame(scaler_exploratory.fit_transform(X_clean), columns=X_clean.columns)
 
 ###############################################################################
-# TOPOGRAPHICAL COLLINEARITY VIA AGGLOMERATIVE HIERARCHICAL CLUSTERING
+# HIERARCHICAL CLUSTERING BLOCK
 ###############################################################################
-correlation_matrix = X_scaled_exploratory.corr().fillna(0)
+correlation_matrix = X_scaled_exploratory.corr()
+
+if correlation_matrix.isnull().any().any():
+    correlation_matrix = correlation_matrix.fillna(0)
+
 distance_threshold = 6.5 
 
 model = AgglomerativeClustering(n_clusters=None, linkage='average', distance_threshold=distance_threshold)
@@ -96,7 +100,8 @@ cluster_cols = model.fit_predict(correlation_matrix.T)
 cluster_rows = model.fit_predict(correlation_matrix)  
 
 n_clusters = len(np.unique(cluster_cols)) 
-colors = mpl.colormaps['plasma'].resampled(n_clusters)
+colors = plt.cm.get_cmap('plasma', n_clusters) if hasattr(plt.cm, 'get_cmap') else plt.colormaps['plasma']
+
 col_colors = [colors(i) for i in cluster_cols]
 row_colors = [colors(i) for i in cluster_rows]
 
@@ -105,61 +110,45 @@ cluster_texts = [f"Cluster {i+1}: {cluster_features[i]:02d} features" for i in r
 
 Z = linkage(correlation_matrix, method='average', metric='euclidean')
 
-# Dendrogram Plot Optimization
-plt.figure(figsize=(14, 6))
-dendrogram(
-    Z, 
-    labels=correlation_matrix.columns, 
-    color_threshold=distance_threshold,
-    above_threshold_color='#7f8c8d',
-    leaf_rotation=45,
-    leaf_font_size=8
-)
+# Dendrogram Plot
+plt.figure(figsize=(20, 8))
+dendrogram(Z, labels=correlation_matrix.columns, color_threshold=distance_threshold)
 plt.axhline(y=distance_threshold, color='r', linestyle='--', label=f'Distance Threshold = {distance_threshold}')  
-plt.xlabel('Connectomic Network Features', fontsize=11, labelpad=10)
-plt.ylabel('Cophenetic Linkage Distance', fontsize=11)
-plt.title(r'$\mathbf{Hierarchical\ Clustering\ Dendrogram:\ Topological\ Feature\ Collinearity}$', fontsize=13, pad=15)
-plt.legend(loc='upper right')
-plt.grid(axis='y', linestyle=':', alpha=0.6)
-plt.tight_layout()
-plt.savefig(os.path.join(RESULTS_PATH, 'dendogram.png'), format='png', dpi=300)
+plt.xlabel('Features')
+plt.ylabel('Distance')
+plt.savefig(os.path.join(RESULTS_PATH, 'dendogram.png'), format='png')
 plt.close()
 
-# Clustermap Plot Optimization
-plt.rcParams['text.usetex'] = False  # Drop latex briefly for raw underscore label compilation
-g = sns.clustermap(
-    correlation_matrix, 
-    cmap='YlGnBu', 
-    figsize=(14, 12), 
-    annot=False,  
-    xticklabels=True, 
-    yticklabels=True, 
-    row_cluster=True, 
-    col_cluster=True,  
-    tree_kws={'linewidths': 1.5}, 
-    row_colors=row_colors, 
-    col_colors=col_colors,
-    dendrogram_ratio=(0.15, 0.15),
-    cbar_kws={'label': 'Correlation Coefficient (R)'}
-)
+# Clustermap Plot
+g = sns.clustermap(correlation_matrix, cmap='YlGnBu',
+                   figsize=(30, 30),  
+                   annot=False,  
+                   xticklabels=True,  
+                   yticklabels=True,  
+                   row_cluster=True,  
+                   col_cluster=True,  
+                   tree_kws={'linewidths': 2},  
+                   row_colors=row_colors,  
+                   col_colors=col_colors  
+                   )
 
-g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xticklabels(), rotation=45, ha='right', fontsize=7)
-g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_yticklabels(), fontsize=7)
-g.ax_cbar.set_position((0.02, 0.03, 0.03, 0.15))
+g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xticklabels(), rotation=90, fontsize=8)
+g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_yticklabels(), fontsize=8)
+g.ax_cbar.set_position((0.9, .02, .03, .1))
+g.ax_cbar.set_ylabel('Correlation (R)')
 
-plt.rcParams['text.usetex'] = True  # Restore LaTeX for structural title components
-y_position = 0.85  
+y_position = 0.94  
 for i, cluster_text in enumerate(cluster_texts):
-    text_color = 'black' if i in [2, 3] else 'white'
-    plt.text(
-        0.88, y_position, cluster_text, horizontalalignment='left', verticalalignment='top',
-        transform=g.fig.transFigure, fontsize=9, 
-        bbox=dict(facecolor=colors(i), edgecolor='none', boxstyle='square,pad=0.6'),
-        color=text_color
-    )  
-    y_position -= 0.025  
+    if i == len(cluster_texts) - 1:  
+        plt.text(0.9, y_position, cluster_text, horizontalalignment='left', verticalalignment='top',
+                 transform=g.fig.transFigure, fontsize=10, bbox=dict(facecolor=colors(i), edgecolor='none', boxstyle='square,pad=1'),
+                 color='black')  
+    else:
+        plt.text(0.9, y_position, cluster_text, horizontalalignment='left', verticalalignment='top',
+                 transform=g.fig.transFigure, fontsize=10, bbox=dict(facecolor=colors(i), edgecolor='none', boxstyle='square,pad=1'),
+                 color='white')  
+    y_position -= 0.012  
 
-g.fig.suptitle(r'$\mathbf{Topographical\ Connectomic\ Matrix\ Hierarchical\ Clustering\ Map}$', fontsize=14, y=0.98)
 plt.savefig(os.path.join(RESULTS_PATH, 'clustermap.png'), format='png', dpi=300)  
 plt.close()
 
