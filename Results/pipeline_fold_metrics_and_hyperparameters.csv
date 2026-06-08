@@ -1,0 +1,6 @@
+Fold,Biased_Accuracy,Biased_Precision,Biased_Sensitivity_Recall,Biased_F1_Score,Unbiased_Accuracy,Unbiased_Precision,Unbiased_Sensitivity_Recall,Unbiased_F1_Score,Unbiased_Optimal_Features_Count,Unbiased_Params
+1,1.0,1.0,1.0,1.0,0.8571428571428571,0.875,0.875,0.8571428571428571,3,"{'max_depth': None, 'min_samples_split': 2, 'n_estimators': 50}"
+2,0.5714285714285714,0.55,0.5416666666666666,0.5333333333333333,0.5714285714285714,0.55,0.5416666666666666,0.5333333333333333,13,"{'max_depth': None, 'min_samples_split': 2, 'n_estimators': 50}"
+3,0.7142857142857143,0.8333333333333333,0.6666666666666666,0.65,0.5714285714285714,0.2857142857142857,0.5,0.36363636363636365,2,"{'max_depth': None, 'min_samples_split': 5, 'n_estimators': 200}"
+4,1.0,1.0,1.0,1.0,0.8571428571428571,0.9,0.8333333333333333,0.8444444444444444,14,"{'max_depth': None, 'min_samples_split': 2, 'n_estimators': 50}"
+5,1.0,1.0,1.0,1.0,0.8571428571428571,0.9,0.8333333333333333,0.8444444444444444,3,"{'max_depth': None, 'min_samples_split': 2, 'n_estimators': 50}"
