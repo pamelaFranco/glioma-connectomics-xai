@@ -73,10 +73,10 @@ Given the tractography and structural network focus of this manuscript, the repo
 
 ```text
 ├── Codes/
-│   ├── ML_Pipeline.ipynb                      # Explainable ML pipeline for connectome classification via SFS, Random Forest, and SHAP.
-│   └── requirements.txt                       # Required Python packages and dependencies.
+│   ├── ML_Pipeline.ipynb                                        # Explainable ML pipeline for connectome classification via SFS, Random Forest, and SHAP.
+│   └── requirements.txt                                         # Required Python packages and dependencies.
 ├── Dataset/
-└── dataset_conectomica_with_labels.csv        # Multi-level connectomic graph features from JHU atlas (307 features/patient).
+└── dataset_conectomica_with_labels.csv                          # Multi-level connectomic graph features from JHU atlas (307 features/patient).
  space.
 ├── Results/                                                     # Automatically generated pipeline outputs and diagnostics.
 │   ├── clustermap.png                                           # Dual-axis hierarchical correlation matrix with average-linkage cluster boundaries.
@@ -90,13 +90,13 @@ Given the tractography and structural network focus of this manuscript, the repo
 │   ├── sfs_feature_accuracy_curve.png                           # SFS trajectory optimization curve mapping internal CV accuracy vs. feature count.
 │   ├── shap_1_summary_scatter.png                               # SHAP density scatter plot mapping local attributions within the parsimonious subspace.
 │   ├── shap_2_summary_bar.png                                   # Global feature importance ranking calculated via mean absolute SHAP values.
-│   ├── shap_3_dependence_1_Clustering_Medial_lemniscus_L.png   # SHAP dependency risk profile for the Medial Lemniscus clustering metric.
+│   ├── shap_3_dependence_1_Clustering_Medial_lemniscus_L.png    # SHAP dependency risk profile for the Medial Lemniscus clustering metric.
 │   ├── shap_3_dependence_2_Strength_Sagittal_stratum_L.png      # SHAP dependency risk profile for the Sagittal Stratum strength metric.
 │   ├── shap_4_local_patient_force.png                           # SHAP local force plot breaking down additive attributions for a single clinical case.
 │   ├── shap_5_decision_trajectory.png                           # SHAP decision plot illustrating feature attribution accumulation paths.
 │   ├── tsne_class_segregation_comparison.png                    # Side-by-side t-SNE embedding comparing high-dimensional vs. isolated feature spaces.
 │   └── validation_confusion_matrices.png                        # Comparative cumulative confusion matrices for the biased vs. unbiased pipelines.
-└── README.md                                  # Project documentation and laboratory guidelines.
+└── README.md                                                    # Project documentation and laboratory guidelines.
 
 ```
 
