@@ -47,7 +47,7 @@ This repository contains the official **explainable machine learning (ML) pipeli
 
 <p align="left">
   <strong>Rodrigo Salas</strong> <a href="https://orcid.org/0000-0002-0350-6811"><img src="https://img.shields.io/badge/ORCID-0000--0002--0350--6811-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>🔹 Biomedical Engineering School / Center MEDING, Universidad de Valparaíso🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+  <small>🔹 Biomedical Engineering School / Center MEDING, Universidad de Valparaíso<br>🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
 </p>
 
 ---
