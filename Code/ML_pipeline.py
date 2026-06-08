@@ -32,8 +32,8 @@ import graphviz
 import shap
 
 # Reset mathtext settings to default to avoid rendering crashes
-plt.rcParams['text.usetex'] = False
-plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['text.usetex'] = True
+plt.rcParams['font.family'] = 'serif'
 
 ###############################################################################
 # SECTION 2.5.1: LOAD DATA & PREPROCESSING
@@ -175,7 +175,7 @@ plt.xticks(range(20), top_20_features, rotation=45, ha='right', fontsize=9)
 plt.ylabel('Absolute Log-Odds Coefficients Weight')
 plt.xlabel('Graph-Theoretic Node Metric / Connectomic Edge Vector')
 plt.rcParams['text.usetex'] = True
-plt.title('Pareto Distribution Weight Ranking: Top 20 Baseline Components', fontweight='bold')
+#plt.title('Pareto Distribution Weight Ranking: Top 20 Baseline Components', fontweight='bold')
 plt.grid(axis='y', linestyle='--', alpha=0.4)
 plt.grid(axis='x', linestyle='--', alpha=0.4)
 plt.tight_layout()
@@ -354,7 +354,7 @@ plt.plot(mean_fpr, mean_tpr_unbiased, color='blue', linestyle='-', label='Strict
 plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Chance level (AUC = 0.50)')
 plt.xlim([-0.05, 1.05]); plt.ylim([-0.05, 1.05])
 plt.xlabel('False Positive Rate'); plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic (ROC) Comparison', fontweight='bold')
+#plt.title('Receiver Operating Characteristic (ROC) Comparison', fontweight='bold')
 plt.legend(loc="lower right"); plt.grid(True, alpha=0.3); plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_PATH, 'comparative_roc_curve.png'))
 plt.close()
@@ -362,12 +362,12 @@ plt.close()
 # PLOT COMPREHENSIVE EMPIRICAL CONFUSION MATRICES
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 sns.heatmap(biased_cumulative_cm, annot=True, fmt='.0f', cmap='Reds', ax=axes[0], cbar=False,
-            xticklabels=['Class 0', 'Class 1'], yticklabels=['Class 0', 'Class 1'])
+            xticklabels=['LGG', 'HGG'], yticklabels=['LGG', 'HGG'])
 axes[0].set_title('Biased Pipeline: Cumulative CM (Data Leakage)', fontweight='bold')
 axes[0].set_ylabel('True Label'); axes[0].set_xlabel('Predicted Label')
 
 sns.heatmap(unbiased_cumulative_cm, annot=True, fmt='.0f', cmap='Blues', ax=axes[1], cbar=False,
-            xticklabels=['Class 0', 'Class 1'], yticklabels=['Class 0', 'Class 1'])
+            xticklabels=['LGG', 'HGG'], yticklabels=['LGG', 'HGG'])
 axes[1].set_title('Isolated Nested Pipeline: Cumulative CM', fontweight='bold')
 axes[1].set_ylabel('True Label'); axes[1].set_xlabel('Predicted Label')
 plt.tight_layout()
@@ -388,7 +388,7 @@ plt.fill_between(features_count, means - stds, means + stds, color='teal', alpha
 plt.plot(optimal_num_features, max_accuracy, color='red', marker='o', markersize=9, linestyle='', label=f'Global Max (N={optimal_num_features}, Acc={max_accuracy:.3f})')
 plt.xlabel('Number of Features Selected (by RF Importance Ranking)')
 plt.ylabel('Validation Accuracy (Internal CV)')
-plt.title('Feature Selection Process Optimization (Fold 1 Isolation)', fontweight='bold')
+#plt.title('Feature Selection Process Optimization (Fold 1 Isolation)', fontweight='bold')
 plt.xticks(features_count, rotation=90 if len(features_count) > 20 else 0)
 plt.grid(True, alpha=0.3); plt.legend(loc="lower right"); plt.xlim(1,30)
 plt.tight_layout()
@@ -423,7 +423,7 @@ else:
 plt.figure(figsize=(11, 7))
 shap.summary_plot(shap_matrix, X_shap_input, show=False)
 plt.rcParams['text.usetex'] = True
-plt.title('Structural Attributions Map within Isolated Parsimonious Sub-space (SHAP Scatter)', fontweight='bold')
+#plt.title('Structural Attributions Map within Isolated Parsimonious Sub-space (SHAP Scatter)', fontweight='bold')
 plt.xlabel(r'SHAP interaction value (impact on model output)')
 plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_PATH, 'shap_1_summary_scatter.png'), dpi=300)
@@ -434,7 +434,7 @@ plt.rcParams['text.usetex'] = False
 plt.figure(figsize=(11, 7))
 shap.summary_plot(shap_matrix, X_shap_input, plot_type="bar", show=False)
 plt.rcParams['text.usetex'] = True
-plt.title('Global Feature Importance Framework via Mean Absolute SHAP', fontweight='bold')
+#plt.title('Global Feature Importance Framework via Mean Absolute SHAP', fontweight='bold')
 plt.xlabel(r'mean(|SHAP value|) (average impact magnitude)')
 plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_PATH, 'shap_2_summary_bar.png'), dpi=300)
@@ -446,7 +446,7 @@ for idx, feature_name in enumerate(target_features[:2]):
     plt.figure(figsize=(8, 6))
     shap.dependence_plot(feature_name, shap_matrix, X_shap_input, show=False)
     plt.rcParams['text.usetex'] = True
-    plt.title(f'SHAP Dependence Evaluation Plot: {feature_name}', pad=15, fontweight='bold')
+   # plt.title(f'SHAP Dependence Evaluation Plot: {feature_name}', pad=15, fontweight='bold')
     plt.tight_layout()
     plt.savefig(os.path.join(RESULTS_PATH, f'shap_3_dependence_{idx+1}_{feature_name}.png'), dpi=300)
     plt.close()
@@ -458,7 +458,7 @@ if hasattr(explainer, 'expected_value'):
     base_val = explainer.expected_value[1] if isinstance(explainer.expected_value, (list, np.ndarray)) else explainer.expected_value
     shap.force_plot(base_val, shap_matrix[0, :], X_shap_input.iloc[0, :], matplotlib=True, show=False)
     plt.rcParams['text.usetex'] = True
-    plt.title('Patient 1 Single-Sample Clinical Prediction Breakdown (SHAP Force Plot)', pad=25, fontweight='bold')
+    #plt.title('Patient 1 Single-Sample Clinical Prediction Breakdown (SHAP Force Plot)', pad=25, fontweight='bold')
     plt.tight_layout()
     plt.savefig(os.path.join(RESULTS_PATH, 'shap_4_local_patient_force.png'), dpi=300)
 plt.close()
@@ -469,7 +469,7 @@ plt.figure(figsize=(10, 7))
 if hasattr(explainer, 'expected_value'):
     shap.decision_plot(base_val, shap_matrix, X_shap_input, show=False)
     plt.rcParams['text.usetex'] = True
-    plt.title('Model Attributions Accumulation Paths (SHAP Decision Plot)', fontweight='bold')
+    #plt.title('Model Attributions Accumulation Paths (SHAP Decision Plot)', fontweight='bold')
     plt.tight_layout()
     plt.savefig(os.path.join(RESULTS_PATH, 'shap_5_decision_trajectory.png'), dpi=300)
 plt.close()
@@ -484,14 +484,18 @@ try:
     plt.rcParams['text.usetex'] = False
     
     single_tree = target_model.estimators_[0]
+    
+    # Map 'Class_0' to 'LGG' and 'Class_1' to 'HGG' with consistent formatting
     dot_data = export_graphviz(
         single_tree, out_file=None, max_depth=3,
-        feature_names=target_features, class_names=['Class_0', 'Class_1'],
+        feature_names=target_features, class_names=['LGG', 'HGG'],
         filled=True, rounded=True, special_characters=True
     )
     
-    # Clean raw styling commands injected by packages to keep dimensions stable
-    dot_data = dot_data.replace('fontname="helvetica"', 'fontname="DejaVu Sans"')
+    # Standardize fonts and ensure text constraints dynamically fit inside the rendering blocks
+    dot_data = dot_data.replace('fontname="helvetica"', 'fontname="Arial"')
+    # Add a global graph attribute to force nodes to fit text smoothly if needed
+    dot_data = dot_data.replace('node [', 'node [fontname="Arial", fontsize=6, ')
     
     graph = graphviz.Source(dot_data)
     graph.render(os.path.join(RESULTS_PATH, 'random_forest_individual_tree'), format='png', cleanup=True)
@@ -501,7 +505,6 @@ try:
     plt.rcParams['text.usetex'] = old_usetex
 except Exception as e:
     print(f" Notice: Local Graphviz engine configuration could not build tree layout. Error caught safely: {e}")
-
 ###############################################################################
 # DECISION BOUNDARY SURFACE PLOT (Top 2 Isolated Features)
 ###############################################################################
@@ -520,13 +523,22 @@ if len(target_features) >= 2:
     
     plt.rcParams['text.usetex'] = False
     plt.figure(figsize=(9, 7))
+    
     plt.contourf(xx, yy, Z_mesh, alpha=0.3, cmap='coolwarm')
+    
     scatter = plt.scatter(X_boundary[feat1], X_boundary[feat2], c=y, edgecolor='k', alpha=0.8, cmap='coolwarm')
-    plt.xlabel(feat1); plt.ylabel(feat2)
+    
+    plt.xlabel(feat1)
+    plt.ylabel(feat2)
+    
     plt.rcParams['text.usetex'] = True
-    plt.title('Random Forest Multi-Dimensional Decision Space (Top 2 Features)', fontweight='bold')
-    plt.legend(*scatter.legend_elements(), title="Classes")
-    plt.grid(True, alpha=0.2); plt.tight_layout()
+    
+    class_labels = ['LGG', 'HGG']
+    handles, _ = scatter.legend_elements()
+    plt.legend(handles, class_labels, title="Tumor Grade", loc="upper right", frameon=True)
+    
+    plt.grid(True, alpha=0.2)
+    plt.tight_layout()
     plt.savefig(os.path.join(RESULTS_PATH, 'decision_boundary_surface.png'), dpi=300)
     plt.close()
 
@@ -548,20 +560,36 @@ X_tsne_post = tsne_post.fit_transform(X_scaled_isolated)
 # Plot side-by-side t-SNE manifolds to track cohort segregation boundaries transformation
 fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
+# Define clinical class labels mapping Class 0 -> LGG and Class 1 -> HGG
+class_labels = ['LGG', 'HGG']
+
+# Panel A: Pre-selection
 scatter_pre = axes[0].scatter(X_tsne_pre[:, 0], X_tsne_pre[:, 1], c=y, cmap='bwr', edgecolor='k', alpha=0.8, s=60)
-axes[0].set_xlabel('t-SNE Dimension 1'); axes[0].set_ylabel('t-SNE Dimension 2')
+axes[0].set_xlabel('t-SNE Dimension 1')
+axes[0].set_ylabel('t-SNE Dimension 2')
 axes[0].grid(True, alpha=0.2)
-legend1 = axes[0].legend(*scatter_pre.legend_elements(), loc="upper right", title="Cohorts")
 
+# Re-mapping Legend Labels for Panel A
+handles_pre, _ = scatter_pre.legend_elements()
+axes[0].legend(handles_pre, class_labels, loc="upper right", title="Tumor Grade")
+
+# Panel B: Post-selection
 scatter_post = axes[1].scatter(X_tsne_post[:, 0], X_tsne_post[:, 1], c=y, cmap='bwr', edgecolor='k', alpha=0.8, s=60)
-axes[1].set_xlabel('t-SNE Dimension 1'); axes[1].set_ylabel('t-SNE Dimension 2')
+axes[1].set_xlabel('t-SNE Dimension 1')
+axes[1].set_ylabel('t-SNE Dimension 2')
 axes[1].grid(True, alpha=0.2)
-legend2 = axes[1].legend(*scatter_post.legend_elements(), loc="upper right", title="Cohorts")
 
+# Re-mapping Legend Labels for Panel B
+handles_post, _ = scatter_post.legend_elements()
+axes[1].legend(handles_post, class_labels, loc="upper right", title="Tumor Grade")
+
+# Reactivate LaTeX formatting for the text/titles if required by your environment
 plt.rcParams['text.usetex'] = True
+
 axes[0].set_title('A: High-Dimensional Curation Space (Pre-Selection, p=307)', fontweight='bold')
 axes[1].set_title('B: Isolated Parsimonious Sub-space (Post-Selection, p=Optimal)', fontweight='bold')
 fig.suptitle('Connectomic Topological Space Modification vs. Class Segregation (t-SNE Projection)', fontsize=14, fontweight='bold')
+
 plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_PATH, 'tsne_class_segregation_comparison.png'), dpi=300)
 plt.close()
