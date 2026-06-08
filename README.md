@@ -46,7 +46,7 @@ This repository contains the official **explainable machine learning (ML) pipeli
 </p>
 
 <p align="left">
-  <strong>Rodrigo Salas</strong> ✉️ <a href="https://orcid.org/0000-0002-0350-6811"><img src="https://img.shields.io/badge/ORCID-0000--0002--0350--6811-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
+  <strong>Rodrigo Salas</strong> <a href="https://orcid.org/0000-0002-0350-6811"><img src="https://img.shields.io/badge/ORCID-0000--0002--0350--6811-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
   <small>🔹 Biomedical Engineering School, Universidad de Valparaíso<br>🔹 Neurosurgery Department, Hospital Carlos Van Buren<br>🔹 Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
 </p>
 
@@ -124,7 +124,7 @@ The machine learning core is engineered to handle the high-dimensional structura
 * **Global Standardization & Data Pruning:** Features derived from the structural connectivity matrices are scaled using a standard Z-score transformation (`StandardScaler`) prior to data splitting. Constant features with zero variance are automatically identified and removed to prevent downstream mathematical instability.
 * **Hierarchical Collinearity Mapping:** Features are systematically analyzed using average linkage and Euclidean distance. The pipeline maps and visualizes topographical collinearity and structural redundancy among network edges using a predefined cophenetic distance threshold of $6.5$.
 * **Stage 1 (Univariate ANOVA Filtering):** A univariate ANOVA $F$-test (`SelectKBest` via `f_classif`) is applied across the training partition. This stage filters out noisy, non-informative variables by evaluating the significance of mean differences across discrete classes, truncating the feature search space down to the top $100$ most discriminative metrics.
-* **Stage 2 (Forward Sequential Feature Selection):** A wrapper-based stepwise feature selection loop is executed on the $100$ pre-filtered features over a 5-fold cross-validation split on the training data. Driven by an optimized base Random Forest (RF) Classifier, features are added sequentially up to 15 combinations to isolate the absolute minimal, non-redundant optimal subset of structural connectivity metrics that maximizes classification accuracy ($\text{Argmax}[\text{Accuracy}]$).
+* **Stage 2 (Forward Sequential Feature Selection):** A wrapper-based stepwise feature selection loop is executed on the $100$ pre-filtered features over a 5-fold cross-validation split on the training data. Driven by an optimized base Random Forest (RF) Classifier, features are added sequentially up to 15 combinations to isolate the absolute minimal, non-redundant optimal subset of structural connectivity metrics that maximizes classification accuracy ($$\arg\max(\mathrm{Accuracy})$$).
 
 ### 2. Models Evaluated
 * **Linear Exploratory Screening:** `LogisticRegression` with $L_2$ regularization is executed during the initial global screening phase to extract absolute log-odds coefficient weights and build a Pareto chart of the top 20 features against an 80% cumulative threshold.
@@ -210,15 +210,15 @@ This work was supported by the National Agency for Research and Development (ANI
 ---
 ## Citation
 
-If you find this pipeline useful for your research, please cite our preliminary work prepared for Neuroradiology:
+If you find this pipeline useful for your research, please cite our preliminary work prepared for **Neuroradiology**:
 
 ```bibtex
-@inproceedings{montalba2026quantifying,
+@article{franco2026quantifying,
   title={Quantifying White Matter Disruption in Gliomas via Tumor-Masked Structural Connectomics and Explainable Machine Learning: A Pilot Study},
-  author={Franco, Pamela and Montalba, Cristian and Espinoza, Ignacio and Cornejo, M. Daniela and Torres, Francisco and Bennett, Carlos and Chabert, Steren trade and Salas, Rodrigo},
-  booktitle={Submitted to Neuroradiology},
+  author={Franco, Pamela and Montalba, Cristian and Espinoza, Ignacio and Cornejo, M. Daniela and Torres, Francisco and Bennett, Carlos and Chabert, Steren and Salas, Rodrigo},
+  journal={Neuroradiology},
   year={2026},
-  note={Abstract under review}
+  note={Submitted for publication / Under review}
 }
 ```
 
