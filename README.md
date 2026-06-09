@@ -111,7 +111,7 @@ Given the tractography and structural network focus of this manuscript, the repo
 ## Connectome Construction & Graph Theory
 
 * **Node Definition ($V$):** Remaining non-invaded white matter (WM) structures ($50$ target regions of interest) are derived from the *JHU ICBM-DTI-81 White-Matter Labels Atlas* after applying dynamic, patient-specific tumor masking to strictly exclude tumor-encroached regions.
-* **Streamline Propagation & Edge Definition ($E$):** 500 probabilistic samples per voxel are generated via FSL's `ProbtrackX2` to construct customized streamline count-based structural connectivity adjacency matrices.
+* **Streamline Propagation & Edge Definition ($E$):** 5000 probabilistic samples per voxel are generated via FSL's `ProbtrackX2` to construct customized streamline count-based structural connectivity adjacency matrices.
 * **Network Metrics & Feature Extraction:** The structural brain graphs are processed via a specialized MATLAB computational framework using native graph functions to extract a comprehensive multi-level profile ($p = 307$ total topological features per patient after removing constant identifiers):
   * *Raw Matrix Construction Descriptors:* Base characteristics including Matrix Size, Max Weights, and Mean Weights.
   * *Global Network Topology:* Total Edge counts, Network Density, Total Weight, and Global Efficiency.
@@ -133,7 +133,7 @@ The machine learning core is engineered to handle the high-dimensional structura
 * **Primary Predictive Ensemble:** `RandomForestClassifier` serves as the core classification model optimized and validated within the CV framework.
 
 ### 3. Model Selection, Hyperparameter Tuning & Validation
-* **Baseline Grid Optimization:** For the strictly isolated pipeline branch, a hyperparameter optimization framework via `GridSearchCV` is executed inside each outer fold using a 3-fold stratified internal cross-validation split. The grid systematically tunes tree-based hyperparameters for the final classifier, evaluating combinations of estimators (`n_estimators: [50, 100, 200]`), maximum tree depth (`max_depth: [None, 5, 10]`), and minimum splitting criteria (`min_samples_split: [2, 5]`) based on the `f1_macro` scoring metric.
+* **Baseline Grid Optimization:** For the strictly isolated pipeline branch, a hyperparameter optimization framework via `GridSearchCV` is executed inside each outer fold using a 3-fold stratified internal cross-validation split. The grid systematically tunes tree-based hyperparameters for the final classifier, evaluating a comprehensive search space designed for robust regularization: combinations of estimators (`n_estimators: [100, 200, 300]`), maximum tree depth (`max_depth: [None, 3, 5, 10]`), minimum samples required to split an internal node (`min_samples_split: [2, 5, 10]`), minimum samples required at a leaf node (`min_samples_leaf: [1, 2, 4]`), and the number of features to consider when looking for the best split (`max_features: ['sqrt', 'log2']`) based on the `f1_macro` scoring metric.
 * **Validation Strategy:** Evaluation is carried out using a **5-Fold Stratified Cross-Validation** framework. Generalizability and evaluation stability are tested across both classification setups to contrast model performance under isolated execution branches against global optimization baselines.
 * **Classification Performance Metrics:** Diagnostic robustness is tracked across all folds using Accuracy, Precision, Sensitivity (Recall), and F1-Score (calculated via macro-averaging for robust class-balance control).
 

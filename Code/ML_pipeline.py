@@ -282,9 +282,11 @@ for fold, (train_idx, test_idx) in enumerate(outer_cv.split(X_clean, y)):
     X_test_unbiased = X_test_fold_scaled[local_chosen_features]
     
     param_grid = {
-        'n_estimators': [50, 100, 200],
-        'max_depth': [None, 5, 10],
-        'min_samples_split': [2, 5]
+        'n_estimators': [100, 200, 300],
+        'max_depth': [None, 3, 5, 10],
+        'min_samples_split': [2, 5, 10],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['sqrt', 'log2']
     }
     grid_search = GridSearchCV(
         estimator=RandomForestClassifier(random_state=42, class_weight='balanced'),
