@@ -1,4 +1,4 @@
-# Quantifying White Matter Disruption in Gliomas via Tumor-Masked Structural Connectomics and Explainable Machine Learning: A Pilot Study 
+# Tumor-Masked Structural Connectomics and Explainable Machine Learning for Non-Invasive Glioma Grading: A Pilot Study
 
 > **Note for Reviewers:** This repository hosts the official computational framework and reproducible workflows corresponding to the abstract submitted to the **Nueroradiology**
 
@@ -52,7 +52,8 @@ This repository contains the official **explainable machine learning (ML) pipeli
 
 ---
 
-The present proof-of-concept study aims to demonstrate an explainable ML pipeline utilizing personalized structural connectivity networks to stratify glioma malignancy grades (LGG, WHO 2 vs. HGG, WHO: 3-4) and map associated WM disruption. By dynamically modifying standardized anatomical templates to strictly exclude tumor-encroached regions, we construct individualized structural connectivity matrices, or connectograms, via advanced probabilistic tractography. Through this approach, we seek to isolate specific macrostructural and graph-theoretic biomarkers capable of discriminating between tumor grades, ultimately providing a highly precise, individualized computational framework for presurgical planning and therapeutic monitoring.
+The aim of this study was to determine whether diffusion MRI-derived tumor-masked structural connectomes can serve as non-invasive imaging biomarkers for glioma grading and to characterize the W pathways most strongly associated with tumor aggressiveness using explainable ML.
+
 
 ---
 
@@ -213,7 +214,7 @@ If you find this pipeline useful for your research, please cite our preliminary 
 
 ```bibtex
 @article{franco2026quantifying,
-  title={Quantifying White Matter Disruption in Gliomas via Tumor-Masked Structural Connectomics and Explainable Machine Learning: A Pilot Study},
+  title={Tumor-Masked Structural Connectomics and Explainable Machine Learning for Non-Invasive Glioma Grading: A Pilot Study},
   author={Franco, Pamela and Montalba, Cristian and Espinoza, Ignacio and Cornejo, M. Daniela and Torres, Francisco and Bennett, Carlos and Chabert, Steren and Salas, Rodrigo},
   journal={Neuroradiology},
   year={2026},
