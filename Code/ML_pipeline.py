@@ -425,9 +425,10 @@ else:
 plt.figure(figsize=(11, 7))
 shap.summary_plot(shap_matrix, X_shap_input, show=False)
 plt.rcParams['text.usetex'] = True
-#plt.title('Structural Attributions Map within Isolated Parsimonious Sub-space (SHAP Scatter)', fontweight='bold')
 plt.xlabel(r'SHAP interaction value (impact on model output)')
-plt.tight_layout()
+
+# --- CAMBIO AQUÍ: Forzar un margen inferior para que no se corte el xlabel ---
+plt.subplots_adjust(bottom=0.20, left=0.35) 
 plt.savefig(os.path.join(RESULTS_PATH, 'shap_1_summary_scatter.png'), dpi=300)
 plt.close()
 
@@ -436,9 +437,10 @@ plt.rcParams['text.usetex'] = False
 plt.figure(figsize=(11, 7))
 shap.summary_plot(shap_matrix, X_shap_input, plot_type="bar", show=False)
 plt.rcParams['text.usetex'] = True
-#plt.title('Global Feature Importance Framework via Mean Absolute SHAP', fontweight='bold')
 plt.xlabel(r'mean(|SHAP value|) (average impact magnitude)')
-plt.tight_layout()
+
+# --- CAMBIO AQUÍ: Forzar un margen inferior para que no se corte el xlabel ---
+plt.subplots_adjust(bottom=0.20, left=0.35)
 plt.savefig(os.path.join(RESULTS_PATH, 'shap_2_summary_bar.png'), dpi=300)
 plt.close()
 
@@ -448,7 +450,8 @@ for idx, feature_name in enumerate(target_features[:2]):
     plt.figure(figsize=(8, 6))
     shap.dependence_plot(feature_name, shap_matrix, X_shap_input, show=False)
     plt.rcParams['text.usetex'] = True
-   # plt.title(f'SHAP Dependence Evaluation Plot: {feature_name}', pad=15, fontweight='bold')
+    
+    # --- CAMBIO AQUÍ: Usar tight_layout que funciona bien en los dependence plots ---
     plt.tight_layout()
     plt.savefig(os.path.join(RESULTS_PATH, f'shap_3_dependence_{idx+1}_{feature_name}.png'), dpi=300)
     plt.close()
@@ -460,8 +463,9 @@ if hasattr(explainer, 'expected_value'):
     base_val = explainer.expected_value[1] if isinstance(explainer.expected_value, (list, np.ndarray)) else explainer.expected_value
     shap.force_plot(base_val, shap_matrix[0, :], X_shap_input.iloc[0, :], matplotlib=True, show=False)
     plt.rcParams['text.usetex'] = True
-    #plt.title('Patient 1 Single-Sample Clinical Prediction Breakdown (SHAP Force Plot)', pad=25, fontweight='bold')
-    plt.tight_layout()
+    
+    # --- CAMBIO AQUÍ: Forzar márgenes en el gráfico de fuerza local ---
+    plt.subplots_adjust(bottom=0.25, left=0.15)
     plt.savefig(os.path.join(RESULTS_PATH, 'shap_4_local_patient_force.png'), dpi=300)
 plt.close()
 
@@ -471,8 +475,9 @@ plt.figure(figsize=(10, 7))
 if hasattr(explainer, 'expected_value'):
     shap.decision_plot(base_val, shap_matrix, X_shap_input, show=False)
     plt.rcParams['text.usetex'] = True
-    #plt.title('Model Attributions Accumulation Paths (SHAP Decision Plot)', fontweight='bold')
-    plt.tight_layout()
+    
+    # --- CAMBIO AQUÍ: Forzar márgenes en la trayectoria de decisiones ---
+    plt.subplots_adjust(bottom=0.18, left=0.35)
     plt.savefig(os.path.join(RESULTS_PATH, 'shap_5_decision_trajectory.png'), dpi=300)
 plt.close()
 
