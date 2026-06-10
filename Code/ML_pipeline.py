@@ -14,6 +14,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib.patches import Rectangle
 import re
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_validate, StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier
@@ -111,16 +112,24 @@ cluster_texts = [f"Cluster {i+1}: {cluster_features[i]:02d} features" for i in r
 Z = linkage(correlation_matrix, method='average', metric='euclidean')
 
 # Dendrogram Plot
-plt.figure(figsize=(20, 8))
-dendrogram(Z, labels=correlation_matrix.columns, color_threshold=distance_threshold)
-plt.axhline(y=distance_threshold, color='r', linestyle='--', label=f'Distance Threshold = {distance_threshold}')  
-plt.xlabel('Features')
-plt.ylabel('Distance')
-plt.savefig(os.path.join(RESULTS_PATH, 'dendogram.png'), format='png')
+plt.figure(figsize=(12, 20)) 
+dendrogram(
+    Z, 
+    labels=correlation_matrix.columns, 
+    color_threshold=distance_threshold,
+    orientation='left',    
+    leaf_font_size=6       
+)
+
+plt.axvline(x=distance_threshold, color='r', linestyle='--', label=f'Distance Threshold = {distance_threshold}')  
+plt.xlabel('Distance', fontsize=12)
+plt.ylabel('Features', fontsize=12)
+
+plt.savefig(os.path.join(RESULTS_PATH, 'dendogram.png'), format='png', dpi=300, bbox_inches='tight')
 plt.close()
 
 # Clustermap Plot
-g = sns.clustermap(correlation_matrix, cmap='YlGnBu',
+g = sns.clustermap(correlation_matrix, cmap='viridis',
                    figsize=(30, 30),  
                    annot=False,  
                    xticklabels=True,  
@@ -132,25 +141,51 @@ g = sns.clustermap(correlation_matrix, cmap='YlGnBu',
                    col_colors=col_colors  
                    )
 
-g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xticklabels(), rotation=90, fontsize=8)
-g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_yticklabels(), fontsize=8)
-g.ax_cbar.set_position((0.9, .02, .03, .1))
+g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xticklabels(), rotation=90, fontsize=6)
+g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_yticklabels(), fontsize=6)
+g.ax_cbar.set_position((0.9, .02, .03, .09))
 g.ax_cbar.set_ylabel('Correlation (R)')
 
 y_position = 0.94  
-for i, cluster_text in enumerate(cluster_texts):
-    if i == len(cluster_texts) - 1:  
-        plt.text(0.9, y_position, cluster_text, horizontalalignment='left', verticalalignment='top',
-                 transform=g.fig.transFigure, fontsize=10, bbox=dict(facecolor=colors(i), edgecolor='none', boxstyle='square,pad=1'),
-                 color='black')  
-    else:
-        plt.text(0.9, y_position, cluster_text, horizontalalignment='left', verticalalignment='top',
-                 transform=g.fig.transFigure, fontsize=10, bbox=dict(facecolor=colors(i), edgecolor='none', boxstyle='square,pad=1'),
-                 color='white')  
-    y_position -= 0.012  
+box_height = 0.025  
+box_width = 0.08   
+spacing = 0.002     
 
+for i, cluster_text in enumerate(cluster_texts):
+    current_color = colors(i)
+    rect = Rectangle(
+        (0.9, y_position - box_height),  
+        box_width,  
+        box_height,  
+        transform=g.fig.transFigure,
+        facecolor=current_color,
+        edgecolor='none',
+        zorder=3  
+    )
+    g.fig.add_artist(rect)
+    text_y_center = y_position - (box_height / 2)
+
+    rgb = current_color[:3]
+    luminance = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+    text_color = 'black' if luminance > 0.5 else 'white'
+
+    g.fig.text(
+        0.905,          
+        text_y_center,  
+        cluster_text,
+        transform=g.fig.transFigure,
+        horizontalalignment='left',
+        verticalalignment='center',  
+        fontsize=14,    
+        color=text_color,
+        zorder=4        
+    )
+
+    y_position -= (box_height + spacing)
+    
 plt.savefig(os.path.join(RESULTS_PATH, 'clustermap.png'), format='png', dpi=300)  
 plt.close()
+
 
 ###############################################################################
 # BASELINE UNIVARIATE SCREENING: L2-REGULARIZED LOGISTIC REGRESSION (PARETO)
@@ -427,7 +462,6 @@ shap.summary_plot(shap_matrix, X_shap_input, show=False)
 plt.rcParams['text.usetex'] = True
 plt.xlabel(r'SHAP interaction value (impact on model output)')
 
-# --- CAMBIO AQUÍ: Forzar un margen inferior para que no se corte el xlabel ---
 plt.subplots_adjust(bottom=0.20, left=0.35) 
 plt.savefig(os.path.join(RESULTS_PATH, 'shap_1_summary_scatter.png'), dpi=300)
 plt.close()
@@ -439,7 +473,6 @@ shap.summary_plot(shap_matrix, X_shap_input, plot_type="bar", show=False)
 plt.rcParams['text.usetex'] = True
 plt.xlabel(r'mean(|SHAP value|) (average impact magnitude)')
 
-# --- CAMBIO AQUÍ: Forzar un margen inferior para que no se corte el xlabel ---
 plt.subplots_adjust(bottom=0.20, left=0.35)
 plt.savefig(os.path.join(RESULTS_PATH, 'shap_2_summary_bar.png'), dpi=300)
 plt.close()
@@ -451,7 +484,6 @@ for idx, feature_name in enumerate(target_features[:2]):
     shap.dependence_plot(feature_name, shap_matrix, X_shap_input, show=False)
     plt.rcParams['text.usetex'] = True
     
-    # --- CAMBIO AQUÍ: Usar tight_layout que funciona bien en los dependence plots ---
     plt.tight_layout()
     plt.savefig(os.path.join(RESULTS_PATH, f'shap_3_dependence_{idx+1}_{feature_name}.png'), dpi=300)
     plt.close()
@@ -464,7 +496,6 @@ if hasattr(explainer, 'expected_value'):
     shap.force_plot(base_val, shap_matrix[0, :], X_shap_input.iloc[0, :], matplotlib=True, show=False)
     plt.rcParams['text.usetex'] = True
     
-    # --- CAMBIO AQUÍ: Forzar márgenes en el gráfico de fuerza local ---
     plt.subplots_adjust(bottom=0.25, left=0.15)
     plt.savefig(os.path.join(RESULTS_PATH, 'shap_4_local_patient_force.png'), dpi=300)
 plt.close()
@@ -476,7 +507,6 @@ if hasattr(explainer, 'expected_value'):
     shap.decision_plot(base_val, shap_matrix, X_shap_input, show=False)
     plt.rcParams['text.usetex'] = True
     
-    # --- CAMBIO AQUÍ: Forzar márgenes en la trayectoria de decisiones ---
     plt.subplots_adjust(bottom=0.18, left=0.35)
     plt.savefig(os.path.join(RESULTS_PATH, 'shap_5_decision_trajectory.png'), dpi=300)
 plt.close()
