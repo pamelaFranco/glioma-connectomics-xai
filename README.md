@@ -12,47 +12,47 @@ This repository contains the official **explainable machine learning (ML) pipeli
 
 <p align="left">
   <strong>Pamela Franco</strong> <a href="https://orcid.org/0000-0001-7629-3653"><img src="https://img.shields.io/badge/ORCID-0000--0001--7629--3653-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>● Faculty of Engineering, Universidad Andrés Bello, Santiago, Chile.</small>
+  <small>• Faculty of Engineering, Universidad Andrés Bello, Santiago, Chile.</small>
 </p>
 
 <p align="left">
   <strong>Cristian Montalba</strong> <a href="https://orcid.org/0000-0003-3370-0233"><img src="https://img.shields.io/badge/ORCID-0000--0003--3370--0233-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>● Biomedical Imaging Center / Radiology Department, Pontificia Universidad Católica de Chile<br>● Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+  <small>• Biomedical Imaging Center / Radiology Department, Pontificia Universidad Católica de Chile<br>•Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
 </p>
 
 <p align="left">
   <strong>Ignacio Espinoza</strong> <a href="https://orcid.org/0000-0003-2400-4498"><img src="https://img.shields.io/badge/ORCID-0000--0003--2400--4498-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>● Institute of Physics, Pontificia Universidad Católica de Chile.</small>
+  <small>• Institute of Physics, Pontificia Universidad Católica de Chile.</small>
 </p>
 
 <p align="left">
   <strong>M. Daniela Cornejo</strong> <a href="https://orcid.org/0009-0003-0425-5721"><img src="https://img.shields.io/badge/ORCID-0009--0003--0425--5721-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>● Institute of Physics / Department of Psychiatry, Pontificia Universidad Católica de Chile.</small>
+  <small>• Institute of Physics / Department of Psychiatry, Pontificia Universidad Católica de Chile.</small>
 </p>
 
 <p align="left">
   <strong>Francisco Torres</strong> <a href="https://orcid.org/0000-0002-0003-2446"><img src="https://img.shields.io/badge/ORCID-0000--0002--0003--2446-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>● Radiology Department, Hospital Carlos Van Buren</small>
+  <small>• Radiology Department, Hospital Carlos Van Buren</small>
 </p>
 
 <p align="left">
   <strong>Carlos Bennett</strong> <a href="https://orcid.org/0009-0007-1434-273X"><img src="https://img.shields.io/badge/ORCID-0009--0007--1434--273X-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>● Neurosurgery Department, Hospital Carlos Van Buren</small>
+  <small>• Neurosurgery Department, Hospital Carlos Van Buren</small>
 </p>
 
 <p align="left">
   <strong>Steren Chabert</strong> <a href="https://orcid.org/0000-0002-2890-5077"><img src="https://img.shields.io/badge/ORCID-0000--0002--2890--5077-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>● Biomedical Engineering School / Center MEDING, Universidad de Valparaíso<br>● Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+  <small>• Biomedical Engineering School / Center MEDING, Universidad de Valparaíso<br>• Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
 </p>
 
 <p align="left">
   <strong>Rodrigo Salas</strong> <a href="https://orcid.org/0000-0002-0350-6811"><img src="https://img.shields.io/badge/ORCID-0000--0002--0350--6811-A6CE39?logo=orcid&logoColor=white&style=flat-square" height="16"></a><br>
-  <small>● Biomedical Engineering School / Center MEDING, Universidad de Valparaíso<br>● Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
+  <small>• Biomedical Engineering School / Center MEDING, Universidad de Valparaíso<br>• Millennium Institute for Intelligent Healthcare Engineering (iHEALTH)</small>
 </p>
 
 ---
 
-The aim of this study was to investigate whether diffusion MRI-derived tumor-masked structural connectomics can serve as a non-invasive neuroradiological biomarker of glioma grade and to identify tract-specific patterns of WM disruption associated with tumor aggressiveness using explainable ML. By dynamically excluding tumor-overlapping regions from standardized WM atlases prior to connectome reconstruction, we sought to characterize preserved structural network organization and determine whether graph-theoretical biomarkers provide complementary information regarding tumor-related network disruption. In addition, we evaluated the impact of the validation strategy on performance estimation by comparing conventional and strictly nested ML frameworks.
+The aim of this study was to investigate whether diffusion MRI-derived tumor-masked structural connectomics can serve as a non-invasive neuroradiological biomarker of glioma grade and to identify tract-specific patterns of WM disruption associated with tumor aggressiveness using explainable ML. Given the exploratory nature of this work and the limited cohort size, the primary objective was to evaluate methodological feasibility and identify promising connectomic biomarkers for future large-scale studies.
 
 
 ---
