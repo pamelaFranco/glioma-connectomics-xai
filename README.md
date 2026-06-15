@@ -52,7 +52,7 @@ This repository contains the official **explainable machine learning (ML) pipeli
 
 ---
 
-The aim of this study was to investigate whether diffusion MRI-derived tumor-masked structural connectomics can serve as a non-invasive neuroradiological biomarker of glioma grade and to identify tract-specific patterns of WM disruption associated with tumor aggressiveness using explainable ML. Given the exploratory nature of this work and the limited cohort size, the primary objective was to evaluate methodological feasibility and identify promising connectomic biomarkers for future large-scale studies.
+The aim of this pilot study was to investigate whether a rigorous, tumor-masked structural connectomic derived from diffusion MRI can capture differences between LGG and HGG and reveal tract-specific patterns of WM network disruption associated with tumor aggressiveness. Additionally, we explored the utility of explainable ML for improving the biological interpretability of these connectomic alterations.
 
 
 ---
