@@ -1,4 +1,4 @@
-# Tumor-Masked Structural Connectomics and Explainable Machine Learning for Non-Invasive Glioma Grading: A Pilot Study
+# Tumor-Masked Structural Connectomics Reveals Tract-Specific White Matter Disruption Associated with Glioma Aggressiveness: An Explainable Machine Learning Pilot Study
 
 > **Note for Reviewers:** This repository hosts the official computational framework and reproducible workflows corresponding to the abstract submitted to the **Nueroradiology**
 
@@ -214,7 +214,7 @@ If you find this pipeline useful for your research, please cite our preliminary 
 
 ```bibtex
 @article{franco2026quantifying,
-  title={Tumor-Masked Structural Connectomics and Explainable Machine Learning for Non-Invasive Glioma Grading: A Pilot Study},
+  title={Tumor-Masked Structural Connectomics Reveals Tract-Specific White Matter Disruption Associated with Glioma Aggressiveness: An Explainable Machine Learning Pilot Study},
   author={Franco, Pamela and Montalba, Cristian and Espinoza, Ignacio and Cornejo, M. Daniela and Torres, Francisco and Bennett, Carlos and Chabert, Steren and Salas, Rodrigo},
   journal={Neuroradiology},
   year={2026},
