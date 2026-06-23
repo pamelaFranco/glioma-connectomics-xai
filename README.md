@@ -74,11 +74,12 @@ Given the tractography and structural network focus of this manuscript, the repo
 
 ```text
 ├── Codes/
-│   ├── ML_Pipeline.ipynb                                        # Explainable ML pipeline for connectome classification via SFS, Random Forest, and SHAP.
+│   ├── ML_Pipeline.py                                           # Explainable ML pipeline for connectome classification via SFS, Random Forest, and SHAP.
+│   ├── compare_date.py                                          # Comparative baseline analysis using logistic regression (age, sex, and tumor hemisphere) to benchmark and validate the superior classification performance of the connectomic pipeline 
 │   └── requirements.txt                                         # Required Python packages and dependencies.
 ├── Dataset/
 └── dataset_conectomica_with_labels.csv                          # Multi-level connectomic graph features from JHU atlas (307 features/patient).
- space.
+└── dataset_conectomica_with_patient_details.csv                 # Multi-level connectomic graph features from JHU atlas (307 features/patient) and clinical-demographic information (age, sex, and tumor hemisphere).
 ├── Results/                                                     # Automatically generated pipeline outputs and diagnostics.
 │   ├── clustermap.png                                           # Dual-axis hierarchical correlation matrix with average-linkage cluster boundaries.
 │   ├── comparative_roc_curve.png                                # ROC curves contrasting the biased pipeline vs. strictly isolated cross-validation.
@@ -97,6 +98,7 @@ Given the tractography and structural network focus of this manuscript, the repo
 │   ├── shap_5_decision_trajectory.png                           # SHAP decision plot illustrating feature attribution accumulation paths.
 │   ├── tsne_class_segregation_comparison.png                    # Side-by-side t-SNE embedding comparing high-dimensional vs. isolated feature spaces.
 │   └── validation_confusion_matrices.png                        # Comparative cumulative confusion matrices for the biased vs. unbiased pipelines.
+│   ├── supplementary_analysis_roc.png                           # ROC analysis showing structural connectomics outperforming the clinical-demographic baseline.
 └── README.md                                                    # Project documentation and laboratory guidelines.
 
 ```
@@ -151,6 +153,7 @@ The pipeline automatically prints out the performance discrepancies. A delta ($\
 ### 5. Interpretability and Visual Analytics
 * **Explainable AI (SHAP Analysis):** Implemented using a specialized tree-based explainer (`TreeExplainer`) applied directly to the optimized model from the first validation fold using an isolated evaluation scale. It quantifies game-theoretic feature contributions, extracting additive feature attribution values (SHAP values) to map how specific structural graph edges drive predictions toward targeted pathological profiles.
 * **Feature Space Projections:** High-dimensional transformations are mapped before and after feature selection via t-SNE embeddings to visually confirm class segregation within the optimized low-dimensional subspace. Additionally, a 2D contour mesh scatter plot tracks the empirical decision boundary surface of the top 2 selected features driving the final ensemble's classification boundaries.
+* **Baseline Comparison Modeling**: To quantify the incremental predictive value of the structural connectomics workflow, a secondary baseline logistic regression model was trained using exclusively traditional variables: age, sex, and tumor hemisphere. This clinical baseline model underwent matching cross-validation constraints to benchmark whether network-level metrics offer superior discriminative ability over raw demographic and clinical metadata.
 
 ---
 
@@ -165,6 +168,7 @@ The pipeline automatically prints out the performance discrepancies. A delta ($\
 * **Feature Redundancy & Selection Trajectory:** Hierarchical clustering of the unreduced feature space ($p = 307$) confirmed substantial information redundancy, partitioning the variables into three highly collinear modules. During Forward SFS expansion within the isolated CV loop, the internal validation trajectory was programmatically tracked to identify the absolute global maximum where accuracy peaks before high-dimensional noise degradation sets in.
 * **The Optimal Connectomic Subspace:** The final isolated optimal subset of features capable of discriminating malignancy grades is identified per fold. For post-hoc explanation and feature space projections, the pipeline evaluates the parsimonious sub-space belonging to the first isolation fold.
 * **Post-Hoc Data Leakage Validation:** The robust data leakage analysis proved the mathematical necessity of the isolated nested framework, printing out the final performance discrepancies and inflation deltas across all primary metrics (Accuracy, Precision, Recall, and F1-score) to quantify the exact selection bias induced by upfront feature spaces.
+* **Superiority Over Clinical Baselines**: While the comparative clinical baseline model (age, sex, and tumor hemisphere) achieved a strong classification performance ($\text{Mean AUC} = 0.82$), the pure structural connectomics pipeline substantially outperformed it, yielding a $\text{Mean AUC} = 0.92$. Notably, integrating clinical variables into the network features (Combined Model) did not produce any further diagnostic improvement ($\text{Mean AUC} = 0.92$). This ceiling effect mathematically demonstrates that tumor-masked structural connectograms capture high-dimensional pathophysiological signatures that inherently absorb and outperform traditional epidemiological variables.
 * **Game-Theoretic Interpretability:** The implementation of tree-based SHAP values dismantled the algorithmic "black box" by computing a comprehensive evaluation framework: (1) SHAP Summary Scatter plots for global density mapping, (2) Global Feature Importance Bar charts, (3) Automated Dependence Trajectory plots for the top 2 predictive features, (4) Single-sample Local Force plots for individual patient profiling, and (5) Decision Plots to map feature attribution accumulation paths.
 ---
 
