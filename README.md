@@ -78,9 +78,9 @@ Given the tractography and structural network focus of this manuscript, the repo
 │   ├── compare_date.py                                          # Comparative baseline analysis using logistic regression (age, sex, and tumor hemisphere) to benchmark and validate the superior classification performance of the connectomic pipeline 
 │   └── requirements.txt                                         # Required Python packages and dependencies.
 ├── Dataset/
-└── ├──dataset_conectomica_with_labels.csv                      # Multi-level connectomic graph features from JHU atlas (307 features/patient).
-└── ├──radiomics_with_classes_cleaned.csv                       # Radiomics features from glioma cohort
-└── ├──dataset_conectomica_with_patient_details.csv             # Multi-level connectomic graph features from JHU atlas (307 features/patient) and clinical-demographic information (age, sex, and tumor hemisphere).
+│   ├──dataset_conectomica_with_labels.csv                       # Multi-level connectomic graph features from JHU atlas (307 features/patient).
+│   ├──radiomics_with_classes_cleaned.csv                        # Radiomics features from glioma cohort
+│   ├──dataset_conectomica_with_patient_details.csv              # Multi-level connectomic graph features from JHU atlas (307 features/patient) and clinical-demographic information (age, sex, and tumor hemisphere).
 ├── Results/                                                     # Automatically generated pipeline outputs and diagnostics.
 │   ├── clustermap.png                                           # Dual-axis hierarchical correlation matrix with average-linkage cluster boundaries.
 │   ├── comparative_roc_curve.png                                # ROC curves contrasting the biased pipeline vs. strictly isolated cross-validation.
