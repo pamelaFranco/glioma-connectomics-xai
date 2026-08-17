@@ -228,7 +228,7 @@ global_sfs = SequentialFeatureSelector(
 global_sfs.fit(X_scaled_leakage, y)
 global_chosen_features = X_clean.columns[global_sfs.get_support()].tolist()
 
-N_REPEATS = 1
+N_REPEATS = 5
 N_SPLITS_OUTER = 5
 N_SPLITS_INNER = 5 
 BASE_SEED = 42

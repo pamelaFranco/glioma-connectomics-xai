@@ -428,7 +428,7 @@ if __name__ == "__main__":
     print(f"M4: {X_M4.shape[1]} features | M5: {X_M5.shape[1]} features | M6: {X_M6.shape[1]} features\n")
 
     outer_cv = RepeatedStratifiedKFold(
-        n_splits=5, n_repeats=1, random_state=BASE_SEED
+        n_splits=5, n_repeats=5, random_state=BASE_SEED
     )
 
     results_summary = []
