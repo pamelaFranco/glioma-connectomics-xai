@@ -424,15 +424,19 @@ Under a strict, leakage-free nested cross-validation scheme (Isolated Pipeline),
 
 Out-of-sample Tree SHAP attributions identified topological metrics within projection, association, and commissural pathways as important contributors to glioma-grade discrimination.
 
-The **PageRank Centrality of the left sagittal stratum** showed the highest mean absolute SHAP value (**mean |SHAP| = 0.066**) and was selected in **60.0% of the outer cross-validation folds**. **Strength Centrality of the left sagittal stratum** was the second-ranked feature (**mean |SHAP| = 0.033**) and was also selected in **60.0% of folds**.
+### Top SHAP Features
 
-Additional recurrent features included:
+| Feature | Mean |SHAP| | Selection Frequency |
+|---|---:|---:|
+| PageRank — Left sagittal stratum | 0.066 | 60.0% |
+| Strength — Left sagittal stratum | 0.033 | 60.0% |
+| Clustering Coefficient — Left cerebral white matter | 0.032 | 40.0% |
+| Closeness — Middle cerebellar peduncle | 0.032 | 20.0% |
+| Betweenness — Right posterior thalamic radiation | 0.019 | 60.0% |
 
-- **Clustering Coefficient of the left cerebral white matter** — mean |SHAP| = **0.032**; selected in **40.0%** of folds.
-- **Closeness Centrality of the middle cerebellar peduncle** — mean |SHAP| = **0.032**; selected in **20.0%** of folds.
-- **Betweenness Centrality of the right posterior thalamic radiation** — mean |SHAP| = **0.019**; selected in **60.0%** of folds.
+These findings identify tract-specific network metrics as **candidate contributors to glioma-grade discrimination**. However, variability in feature selection across outer folds supports their interpretation as **exploratory imaging biomarkers rather than definitive biomarker signatures**.
 
-These findings identify tract-specific network metrics as **candidate contributors to glioma-grade discrimination**. However, the variability in selection frequency across folds supports their interpretation as **exploratory imaging biomarkers rather than definitive biomarker signatures**.
+
 ---
 
 ## Reproducibility & Data Availability
