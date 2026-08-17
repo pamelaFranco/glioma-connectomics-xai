@@ -426,13 +426,13 @@ Out-of-sample Tree SHAP attributions identified topological metrics within proje
 
 ### Top SHAP Features
 
-| Feature | Mean |SHAP| | Selection Frequency |
-|---|---:|---:|
-| PageRank — Left sagittal stratum | 0.066 | 60.0% |
-| Strength — Left sagittal stratum | 0.033 | 60.0% |
-| Clustering Coefficient — Left cerebral white matter | 0.032 | 40.0% |
-| Closeness — Middle cerebellar peduncle | 0.032 | 20.0% |
-| Betweenness — Right posterior thalamic radiation | 0.019 | 60.0% |
+| Feature | Mean SHAP | Selection Frequency (\%) |
+| :--- | :---: | :---: |
+| PageRank — Left sagittal stratum | 0.066 | 60.0 |
+| Strength — Left sagittal stratum | 0.033 | 60.0 |
+| Clustering Coefficient — Left cerebral white matter | 0.032 | 40.0|
+| Closeness — Middle cerebellar peduncle | 0.032 | 20.0 |
+| Betweenness — Right posterior thalamic radiation | 0.019 | 60.0 |
 
 These findings identify tract-specific network metrics as **candidate contributors to glioma-grade discrimination**. However, variability in feature selection across outer folds supports their interpretation as **exploratory imaging biomarkers rather than definitive biomarker signatures**.
 
