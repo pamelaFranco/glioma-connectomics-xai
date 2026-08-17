@@ -101,18 +101,6 @@ Given the tractography and structural network focus of this manuscript, the repo
 │   └── requirements.txt
 │       # Required Python packages and computational dependencies.
 │
-├── Dataset/
-│   ├── dataset_conectomica_with_labels.csv
-│   │   # Tumor-masked structural connectomic dataset containing graph-theoretical
-│   │   # features and glioma-grade labels.
-│   │
-│   ├── radiomics_with_classes_cleaned.csv
-│   │   # Cleaned radiomics feature dataset with glioma classification labels.
-│   │
-│   └── dataset_conectomica_with_patient_details.csv
-│       # Structural connectomic features combined with patient-level
-│       # clinical and demographic information.
-│
 ├── Results/
 │   │
 │   ├── Figure_1.png
