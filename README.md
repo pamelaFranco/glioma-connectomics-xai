@@ -1,4 +1,4 @@
-# Tumor-Masked Structural Connectomics Reveals Tract-Specific White Matter Disruption Associated with Glioma Aggressiveness: An Explainable Machine Learning Pilot Study
+# Tumor-Masked Structural Connectomics for Assessing Tract-Specific White Matter Disruption Associated with Glioma Aggressiveness: An Interpretable Machine Learning Pilot Study 
 
 > **Note for Reviewers:** This repository hosts the official computational framework and reproducible workflows corresponding to the abstract submitted to the **Nueroradiology**
 
@@ -6,7 +6,7 @@
 
 > **Note:** This visualization is a video made in **DSI Studio** to show the global tractography data.
 
-This repository contains the official **explainable machine learning (ML) pipeline** for classifying glioma malignancy grades (Low-Grade Glioma (LGG) vs. High-Grade Glioma (HGG)) and stratifying tract-specific white matter (WM) disruption, using personalized, tumor-masked structural connectivity networks (connectograms).
+This repository contains the official **interpretable machine learning (ML) pipeline** for classifying glioma malignancy grades (Low-Grade Glioma (LGG) vs. High-Grade Glioma (HGG)) and stratifying tract-specific white matter (WM) disruption, using personalized, tumor-masked structural connectivity networks (connectograms).
 
 ### Authors & Affiliations
 
@@ -52,19 +52,32 @@ This repository contains the official **explainable machine learning (ML) pipeli
 
 ---
 
-The aim of this pilot study was to investigate whether a rigorous, tumor-masked structural connectomic derived from diffusion MRI can capture differences between LGG and HGG and reveal tract-specific patterns of WM network disruption associated with tumor aggressiveness. Additionally, we explored the utility of explainable ML for improving the biological interpretability of these connectomic alterations.
+To assess the feasibility of personalized tumor-masked structural connectomics combined with interpretable ML for differentiating LGG from HGG, and to identify candidate tract-specific connectomic biomarkers of glioma aggressiveness.
 
 
 ---
 
 ## Pipeline Overview
 
-The pipeline implements an advanced neuroimaging and ML workflow:
-1. **Diffusion Preprocessing**: Geometry/motion correction via Gaussian Processes and brain masking.
-2. **Tumor-Masked Atlas Adaptation**: Voxel-wise intersection and automatic exclusion of tumor-encroached regions from the JHU ICBM-DTI-81 atlas to avoid confounding signals.
-3. **Probabilistic Tractography**: Fiber orientation modeling via BEDPOSTX (up to 2 crossing fibers per voxel) and network streamline propagation via ProbtrackX2.
-4. **Connectomic Graph Construction & Multi-Level Profiling:** Structural connectivity matrices are mapped using fiber streamline counts between regions of interest (ROIs) derived from the standard JHU ICBM-DTI-81 WM Labels Atlas ($50$ predefined anatomical tracts). These raw adjacency matrices are programmatically analyzed via a specialized automated MATLAB framework using native graph-theoretical functions to construct individual brain graphs and compute a comprehensive topological profile. For each patient, the pipeline extracts parameters across three independent levels: matrix construction descriptors, macro-topological global network metrics, and local nodal/ROI metrics, resulting in a consolidated master dataset ($35$ Patients $\times$ $307$ Columns) for downstream ML pipelines.
-5. **Feature Selection & Stratified Validation:** The high-dimensional feature vectors ($p = 307$) are processed through a strict optimization framework. First, zero-variance constant features are programmatically pruned. In Stage 1 (Filtering), a hierarchical clustering routine using average linkage and Euclidean distance maps feature redundancies based on a cophenetic distance threshold of $6.5$. In Stage 2 (Wrapper), a forward SFS loop—driven by an optimized baseline RandomForestClassifier—isolates the absolute minimal, non-redundant optimal subset of graph metrics directly over an internal cross-validation loop. The generalizability of the pipeline is evaluated using a robust 5-Fold Stratified Cross-Validation framework, comparing a Global Feature Selection architecture against a strict Unbiased Isolated setup to mathematically assess and control for selection bias (data leakage). Predictive insights are complemented by game-theoretic tree-based interpretability through SHAP summary mapping and multi-dimensional t-SNE space analysis.
+The proposed workflow integrates advanced neuroimaging processing with a rigorous, leakage-free machine learning architecture:
+
+1. **Multimodal MRI Acquisition & Preprocessing**:
+   - High-resolution T1-weighted and Diffusion Tensor Imaging (DTI) data ($b = 1000\text{ s/mm}^2$, 25 directions) undergo brain extraction, geometry/motion artifact correction via Gaussian Process modeling, and spatial normalization to standard MNI space.
+2. **Tumor-Masked Atlas Adaptation**:
+   - Manual 3D tumor segmentation maps in subject space are co-registered and mapped onto the JHU ICBM-DTI-81 White Matter Labels Atlas ($50$ ROIs). Voxel-wise intersection programmatically excludes tumor-invaded regions, preventing false streamline propagation through pathological tissue.
+3. **Probabilistic Diffusion Tractography**:
+   - Intra-voxel fiber orientation distributions are estimated using **BEDPOSTX** (modeling up to 2 crossing fibers per voxel).
+   - **ProbtrackX2** propagates $5,000$ streamline samples per seed voxel to generate personalized 3D structural connectomes and weighted adjacency matrices.
+4. **Multi-Level Connectomic Profiling**:
+   - Extraction of a comprehensive $296$-feature matrix per subject, encompassing three topological levels:
+     - *Matrix Construction & Adjacency Descriptors* (density, edge count, network total weight).
+     - *Macro-Topological Global Network Metrics* (global efficiency, modularity, transitivity, characteristic path length).
+     - *Nodal & ROI-Specific Local Metrics* (degree, strength, closeness, betweenness, clustering coefficient, PageRank centrality) calculated per JHU tract.
+5. **Leakage-Free Feature Selection & Machine Learning**:
+   - Features undergo zero-variance pruning and agglomerative hierarchical clustering to evaluate multicollinearity.
+   - To eliminate data leakage, feature selection (ANOVA filter combined with Sequential Feature Selection using Random Forest) is embedded strictly **inside** each outer fold of a 5-Fold Stratified Nested Cross-Validation scheme.
+6. **Explainable AI (XAI) & Interpretability**:
+   - Tree-based SHAP (SHapley Additive exPlanations) values are computed on out-of-sample test folds to quantify the local and global contributions of specific white matter tracts, providing game-theoretic interpretation of structural disruption.
 ---
 
 ## Repository Contents
@@ -74,33 +87,159 @@ Given the tractography and structural network focus of this manuscript, the repo
 
 ```text
 ├── Codes/
-│   ├── ML_Pipeline.py                                           # Explainable ML pipeline for connectome classification via SFS, Random Forest, and SHAP.
-│   ├── compare_date.py                                          # Comparative baseline analysis using logistic regression (age, sex, and tumor hemisphere) to benchmark and validate the superior classification performance of the connectomic pipeline 
-│   └── requirements.txt                                         # Required Python packages and dependencies.
+│   ├── ML_Pipeline.py
+│   │   # Main explainable ML pipeline for tumor-masked structural connectomics,
+│   │   # including preprocessing, ANOVA filtering, sequential feature selection
+│   │   # (SFS), Random Forest classification, nested cross-validation,
+│   │   # hyperparameter optimization, sensitivity analysis, and Tree SHAP.
+│   │
+│   ├── sensitivity_analysis.py
+│   │   # Comparative clinical-radiological baseline and integrated-model analysis,
+│   │   # evaluating demographic, tumor-volume, anatomical-location, connectomic,
+│   │   # non-zero connectomic, and combined feature spaces.
+│   │
+│   └── requirements.txt
+│       # Required Python packages and computational dependencies.
+│
 ├── Dataset/
-│   ├──dataset_conectomica_with_labels.csv                       # Multi-level connectomic graph features from JHU atlas (307 features/patient).
-│   ├──radiomics_with_classes_cleaned.csv                        # Radiomics features from glioma cohort
-│   ├──dataset_conectomica_with_patient_details.csv              # Multi-level connectomic graph features from JHU atlas (307 features/patient) and clinical-demographic information (age, sex, and tumor hemisphere).
-├── Results/                                                     # Automatically generated pipeline outputs and diagnostics.
-│   ├── clustermap.png                                           # Dual-axis hierarchical correlation matrix with average-linkage cluster boundaries.
-│   ├── comparative_roc_curve.png                                # ROC curves contrasting the biased pipeline vs. strictly isolated cross-validation.
-│   ├── data_leakage_statistical_analysis.csv                    # Quantified metrics and inflation delta caused by upfront feature selection.
-│   ├── decision_boundary_surface.png                            # 2D decision boundary plot showing classification surfaces of the top 2 features.
-│   ├── dendogram.png                                            # Hierarchical clustering tree mapping structural feature redundancies (Threshold = 6.5).
-│   ├── logistic_regression_pareto_ranking.png                   # Pareto distribution ranking of the top 20 baseline features from L2-Logistic Regression.
-│   ├── pipeline_fold_metrics_and_hyperparameters.csv            # Tabular breakdown of cross-validation metrics and best estimator configurations per fold.
-│   ├── random_forest_individual_tree.png                        # Visual graph structure/architecture layout of a single decision tree estimator.
-│   ├── sfs_feature_accuracy_curve.png                           # SFS trajectory optimization curve mapping internal CV accuracy vs. feature count.
-│   ├── shap_1_summary_scatter.png                               # SHAP density scatter plot mapping local attributions within the parsimonious subspace.
-│   ├── shap_2_summary_bar.png                                   # Global feature importance ranking calculated via mean absolute SHAP values.
-│   ├── shap_3_dependence_1_Clustering_Medial_lemniscus_L.png    # SHAP dependency risk profile for the Medial Lemniscus clustering metric.
-│   ├── shap_3_dependence_2_Strength_Sagittal_stratum_L.png      # SHAP dependency risk profile for the Sagittal Stratum strength metric.
-│   ├── shap_4_local_patient_force.png                           # SHAP local force plot breaking down additive attributions for a single clinical case.
-│   ├── shap_5_decision_trajectory.png                           # SHAP decision plot illustrating feature attribution accumulation paths.
-│   ├── tsne_class_segregation_comparison.png                    # Side-by-side t-SNE embedding comparing high-dimensional vs. isolated feature spaces.
-│   └── validation_confusion_matrices.png                        # Comparative cumulative confusion matrices for the biased vs. unbiased pipelines.
-│   ├── supplementary_analysis_roc.png                           # ROC analysis showing structural connectomics outperforming the clinical-demographic baseline.
-└── README.md                                                    # Project documentation and laboratory guidelines.
+│   ├── dataset_conectomica_with_labels.csv
+│   │   # Tumor-masked structural connectomic dataset containing graph-theoretical
+│   │   # features and glioma-grade labels.
+│   │
+│   ├── radiomics_with_classes_cleaned.csv
+│   │   # Cleaned radiomics feature dataset with glioma classification labels.
+│   │
+│   └── dataset_conectomica_with_patient_details.csv
+│       # Structural connectomic features combined with patient-level
+│       # clinical and demographic information.
+│
+├── Results/
+│   │
+│   ├── Figure_1.png
+│   │   # Methodological workflow for glioma stratification and white matter
+│   │   # vulnerability mapping. The figure summarizes multimodal MRI
+│   │   # preprocessing, tumor-masked tractography, structural connectome
+│   │   # construction, feature extraction, SFS, Random Forest classification,
+│   │   # nested 5-fold cross-validation, and Tree SHAP interpretation.
+│   │   # [Main manuscript Figure 1]
+│   │
+│   ├── Figure_2.png
+│   │   #  Group-level structural connectograms derived from tumor-masked diffusion MRI connectomes. 
+│   │   # Circular network representations illustrating the mean structural connectivity patterns of 
+│   │   # (a) low-grade gliomas (LGG) and (b) high-grade gliomas (HGG). 
+│   │   # [Main manuscript Figure 2]
+│   │
+│   ├── Figure_3.png
+│   │   # Agglomerative hierarchical clustering matrix of multi-level
+│   │   # connectomic features. The symmetric heatmap represents Pearson
+│   │   # correlations across the 296-feature connectomic profile, with
+│   │   # average-linkage/Euclidean dendrograms and three macro-structural
+│   │   # feature clusters identified at a cophenetic distance threshold of 6.5.
+│   │   # [Main manuscript Figure 3]
+│   │
+│   ├── Figure_4.png
+│   │   # Sequential Feature Selection (SFS) performance curve showing
+│   │   # internal cross-validation accuracy as a function of the number
+│   │   # of graph-theoretical features. Peak performance was achieved
+│   │   # at N = 9 features (accuracy = 0.887).
+│   │   # [Main manuscript Figure 4]
+│   │
+│   ├── Figure_5.png
+│   │   # Receiver operating characteristic (ROC) curves comparing the
+│   │   # biased pipeline with the strictly isolated pipeline.
+│   │   # [Main manuscript Figure 5]
+│   │
+│   ├── Figure_6.png
+│   │   # Global network interpretability using Shapley Additive
+│   │   # exPlanations (SHAP), including global feature-importance
+│   │   # ranking and SHAP summary scatter visualization.
+│   │   # [Main manuscript Figure 6]
+│   │
+│   ├── Figure_7.png
+│   │   # Local interpretability, patient trajectories, and non-linear
+│   │   # tract dependence using SHAP decision trajectories.
+│   │   # [Main manuscript Figure 7]
+│   │
+│   ├── Figure_8.png
+│   │   # SHAP dependence plots illustrating non-linear relationships
+│   │   # for the clustering coefficient of the left medial lemniscus
+│   │   # and connectivity strength of the left sagittal stratum.
+│   │   # [Main manuscript Figure 8]
+│   │
+│   ├── Figure_9.png
+│   │   # t-Distributed Stochastic Neighbor Embedding (t-SNE) visualization
+│   │   # comparing feature-space class segregation between biased and
+│   │   # unbiased workflows.
+│   │   # [Main manuscript Figure 9]
+│   │
+│   ├── Supplementary_Figure_1.png
+│   │   # Out-of-fold confusion matrices comparing the biased pipeline
+│   │   # (global feature selection) with the isolated nested pipeline.
+│   │   # [Supplementary Figure 1]
+│   │
+│   ├── Supplementary_Figure_2.png
+│   │   # Non-linear Random Forest decision-boundary surface in a
+│   │   # representative two-dimensional feature space defined by
+│   │   # Betweenness Centrality of the right posterior thalamic
+│   │   # radiation and Strength Centrality of the left sagittal stratum.
+│   │   # [Supplementary Figure 2]
+│   │
+│   ├── Supplementary_Figure_3.png
+│   │   # Decision-rule architecture of a representative Random Forest
+│   │   # tree, showing hierarchical splitting based on candidate
+│   │   # connectomic biomarkers and terminal subgroup allocations.
+│   │   # [Supplementary Figure 3]
+│   │
+│   ├── Supplementary_Figure_4.png
+│   │   # Receiver operating characteristic (ROC) curves comparing
+│   │   # hierarchical clinical-radiological, structural connectomic,
+│   │   # non-zero connectomic, and integrated models (M1–M6).
+│   │   # [Supplementary Figure 4]
+│   │
+│   ├── Table_1.docx
+│   │   # Demographic and clinical characteristics of the glioma cohort,
+│   │   # comparing Low-Grade Glioma (LGG) and High-Grade Glioma (HGG)
+│   │   # patients.
+│   │   # [Main manuscript Table 1]
+│   │
+│   ├── Supplementary_Table_1.docx
+│   │   # Stability of graph-theoretical feature selection across the
+│   │   # outer cross-validation folds, reporting selection frequency
+│   │   # and percentage for each retained metric.
+│   │   # [Supplementary Table 1]
+│   │
+│   ├── Supplementary_Table_2.docx
+│   │   # Comparative performance metrics between biased and unbiased
+│   │   # evaluation pipelines, including 95% confidence intervals
+│   │   # and the absolute performance difference (Δ).
+│   │   # [Supplementary Table 2]
+│   │
+│   ├── Supplementary_Table_3.docx
+│   │   # Fold-wise performance metrics, selected graph features, and
+│   │   # optimized Random Forest hyperparameters for the leak-free
+│   │   # isolated nested pipeline.
+│   │   # [Supplementary Table 3]
+│   │
+│   ├── Supplementary_Table_4.docx
+│   │   # Classification performance across the evaluated pipelines,
+│   │   # including Accuracy, Macro Precision, Macro Recall, Macro F1,
+│   │   # and ROC-AUC from repeated stratified 5-fold cross-validation.
+│   │   # [Supplementary Table 4]
+│   │
+│   ├── Supplementary_Table_5.docx
+│   │   # Top-ranking structural connectomic features according to
+│   │   # Tree SHAP attributions, including mean absolute SHAP,
+│   │   # mean signed SHAP, selection frequency, and selection percentage.
+│   │   # [Supplementary Table 5]
+│   │
+│   └── Supplementary_Table_6.docx
+│       # Quantitative diffusion MRI data-quality assessment and
+│       # outlier-slice distribution across LGG and HGG cohorts.
+│       # [Supplementary Table 6]
+│
+└── README.md
+    # Project documentation, computational workflow, dataset description,
+    # reproducibility instructions, and laboratory guidelines.
 
 ```
 
@@ -125,52 +264,161 @@ Given the tractography and structural network focus of this manuscript, the repo
 
 ## Machine Learning Pipeline Architecture
 
-The ML core is engineered to handle the high-dimensional structural connectivity vectors derived from personalized, tumor-masked brain graphs.
 
-### 1. Feature Selection and Dimensionality Reduction
-* **Global Standardization & Data Pruning:** Features derived from the structural connectivity matrices are scaled using a standard Z-score transformation (`StandardScaler`) prior to data splitting. Constant features with zero variance are automatically identified and removed to prevent downstream mathematical instability.
-* **Hierarchical Collinearity Mapping:** Features are systematically analyzed using average linkage and Euclidean distance. The pipeline maps and visualizes topographical collinearity and structural redundancy among network edges using a predefined cophenetic distance threshold of $6.5$.
-* **Forward Sequential Feature Selection Wrapper:** A wrapper-based stepwise feature selection loop is executed directly within a cross-validation framework over the training split. Driven by a `RandomForestClassifier` (configured with 50 estimators, balanced class weights, and evaluated via 3-fold internal stratified CV), features are added sequentially up to a maximum of 30 candidate features. This process automatically captures the exact parsimonious subset of structural metrics that maximizes internal validation accuracy ($$\arg\max(\mathrm{Accuracy})$$).
+An exploratory proof-of-concept framework designed to address high-dimensional, highly collinear structural connectomic feature spaces derived from personalized tumor-masked brain networks.
 
-### 2. Models Evaluated
-* **Linear Exploratory Screening:** `LogisticRegression` with $L_2$ regularization (`solver='liblinear'`) is executed during the initial global exploratory phase to extract absolute log-odds coefficient weights and build a Pareto chart ranking the top 20 baseline components against the target classes.
-* **Primary Predictive Ensemble:** `RandomForestClassifier` serves as the core classification model optimized and validated within the CV framework.
+---
 
-### 3. Model Selection, Hyperparameter Tuning & Validation
-* **Baseline Grid Optimization:** For the strictly isolated pipeline branch, a hyperparameter optimization framework via `GridSearchCV` is executed inside each outer fold using a 3-fold stratified internal cross-validation split. The grid systematically tunes tree-based hyperparameters for the final classifier, evaluating a comprehensive search space designed for robust regularization: combinations of estimators (`n_estimators: [100, 200, 300]`), maximum tree depth (`max_depth: [None, 3, 5, 10]`), minimum samples required to split an internal node (`min_samples_split: [2, 5, 10]`), minimum samples required at a leaf node (`min_samples_leaf: [1, 2, 4]`), and the number of features to consider when looking for the best split (`max_features: ['sqrt', 'log2']`) based on the `f1_macro` scoring metric.
-* **Validation Strategy:** Evaluation is carried out using a **5-Fold Stratified Cross-Validation** framework. Generalizability and evaluation stability are tested across both classification setups to contrast model performance under isolated execution branches against global optimization baselines.
-* **Classification Performance Metrics:** Diagnostic robustness is tracked across all folds using Accuracy, Precision, Sensitivity (Recall), and F1-Score (calculated via macro-averaging for robust class-balance control).
+## Overview
 
-### 4. Post-Hoc Data Leakage Analysis
-To guarantee the scientific integrity and reproducibility of the results, the pipeline includes a strict post-hoc diagnostic test designed to quantify and detect potential selection bias (*data leakage*).
+* **Design Philosophy:** Leakage-controlled, nested cross-validation pipeline engineered specifically for high feature-to-sample ratios and multicollinear graph-theoretical variables.
+* **Primary Classifier:** Random Forest (RF)
+* **Interpretability:** Out-of-sample Tree SHAP attributions
 
-The test isolates and compares two computational setups across a 5-fold Stratified Cross-Validation scheme to compute the Discrepancy Delta ($\Delta_{\text{leakage}}$) on the Macro F1-Score:
+---
 
-* **Potential Leakage Setup (Biased Framework):** Evaluates the performance of the Random Forest model using the features pre-selected by the global workflow. Since the feature selection was frozen on a static partition before the outer loops, it maps how much the model could benefit from knowing properties of the underlying dataset distribution beforehand.
-* **Strict Isolation Setup (Unbiased Framework):** Executes a fully contained pipeline completely from scratch inside each individual cross-validation fold. The tree-importance ranking, internal feature-accuracy cross-validation screening, and hyperparameter tuning grid search are executed strictly on the training partition of the active outer fold, completely hiding the respective validation split.
+## 1. Feature Preprocessing & Exploratory Characterization
 
-The pipeline automatically prints out the performance discrepancies. A delta ($\Delta_{\text{leakage}} \le 0.05$) mathematically demonstrates that the feature selection space captures stable, objective structural connectivity biomarkers rather than artificial statistical dependencies, confirming a valid low-dimensional optimized subspace
+* **Initial Feature Space (307 Features):**
+  * **3** matrix-derived measures
+  * **4** global network descriptors
+  * **300** ROI-specific nodal features across 50 JHU white-matter atlas regions (*strength, degree, PageRank, closeness, betweenness, local clustering coefficient*)
+* **Data Curation & Cleaning:**
+  * Feature name standardization
+  * Feature-wise mean imputation for missing and infinite values
+  * Zero-variance feature removal (eliminated 11 constant variables $\rightarrow$ **296 informative features**)
+* **Exploratory Analysis (Non-predictive):**
+  * **Global Standardization:** $Z$-score transformation via `StandardScaler`.
+  * **Hierarchical Collinearity Mapping:** Agglomerative hierarchical clustering (average linkage, Euclidean distance, cophenetic threshold = 6.5) to map feature redundancy.
+  * **Exploratory Linear Baseline:** $L_2$-regularized `LogisticRegression` (`liblinear` solver) to assess baseline feature associations.
 
-### 5. Interpretability and Visual Analytics
-* **Explainable AI (SHAP Analysis):** Implemented using a specialized tree-based explainer (`TreeExplainer`) applied directly to the optimized model from the first validation fold using an isolated evaluation scale. It quantifies game-theoretic feature contributions, extracting additive feature attribution values (SHAP values) to map how specific structural graph edges drive predictions toward targeted pathological profiles.
-* **Feature Space Projections:** High-dimensional transformations are mapped before and after feature selection via t-SNE embeddings to visually confirm class segregation within the optimized low-dimensional subspace. Additionally, a 2D contour mesh scatter plot tracks the empirical decision boundary surface of the top 2 selected features driving the final ensemble's classification boundaries.
-* **Baseline Comparison Modeling**: To quantify the incremental predictive value of the structural connectomics workflow, a secondary baseline logistic regression model was trained using exclusively traditional variables: age, sex, and tumor hemisphere. This clinical baseline model underwent matching cross-validation constraints to benchmark whether network-level metrics offer superior discriminative ability over raw demographic and clinical metadata.
+---
+
+## 2. Leakage-Controlled Feature Selection
+
+A two-stage feature selection wrapper embedded strictly inside the cross-validation loops to prevent data leakage:
+
+1. **Stage 1 — Univariate ANOVA Filtering:** One-way ANOVA applied to candidate graph-theoretical features, retaining variables with $p < 0.05$.
+2. **Stage 2 — Sequential Feature Selection (SFS):** Forward SFS driven by `RandomForestClassifier` with internal 5-fold stratified cross-validation, optimized dynamically via the F1-score trajectory.
+
+* **Dynamic Selection Across Folds:** Feature subsets were determined dynamically per outer fold (fold counts: 8, 10, 3, 5, and 8 features; mean: $6.8 \pm 2.8$). A total of 24 distinct metrics were selected across all outer folds.
+* **Recurrently Selected Markers:**
+  * Betweenness centrality: Right posterior thalamic radiation
+  * PageRank & Strength: Left sagittal stratum
+  * Clustering coefficient: Left cerebral white matter
+  * Centrality measures: Genu of corpus callosum, cerebellar peduncles
+
+---
+
+## 3. Evaluated Models & Multi-Modal Configurations
+
+### 3.1 Model Architectures
+1. **Random Forest Classifier (Primary):** Captures non-linear interactions among distributed features with robust performance against collinearity in small-sample regimes.
+2. **$L_2$-Regularized Logistic Regression (Baseline):** Serves as a linear reference model.
+
+### 3.2 Sensitivity Feature Configurations
+To test whether structural connectomics offer incremental predictive power over traditional measures, four feature sets were benchmarked:
+
+| Configuration | Description / Included Features |
+| :--- | :--- |
+| **Clinical-Radiological Baseline** | Age, sex, tumor volume (`MeshVolume` via PyRadiomics), lateralization, anatomical location, binary indicators for lobe involvement (frontal, parietal, temporal, insular). |
+| **Unconstrained Structural Connectome** | Full available connectomic feature space (296 variables). |
+| **Non-Zero Restricted Connectome** | Connectomic features filtered to retain only variables non-zero across all subjects in the outer training fold. |
+| **Integrated Multimodal Model** | Combined Clinical-Radiological baseline + complete structural connectomic feature space. |
+
+---
+
+## 4. Optimization & Dual-Pathway Validation
+
+### 4.1 Hyperparameter Tuning
+Hyperparameters were optimized via `GridSearchCV` inside the inner CV loop:
+
+```python
+param_grid = {
+    'n_estimators': [100, 200, 300],
+    'max_depth': [None, 3, 5, 10],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'max_features': ['sqrt', 'log2']
+}
+```
+### 4.2 Validation Architectures
+
+* **Biased Validation Pathway:** Stratified 5-fold CV using a static feature set derived from global dataset-level feature selection (used solely for leakage quantification).
+* **Strictly Isolated Nested Pathway (Primary):**
+  * **Outer Loop:** Stratified 5-fold CV for out-of-sample performance evaluation.
+  * **Inner Loop:** Stratified 5-fold CV for feature selection and hyperparameter optimization.
+  * All transformers and scalers fitted strictly on training splits within each fold.
+  * Fixed random state ($\text{seed} = 42$).
+
+---
+
+### 4.3 Out-of-Sample Performance
+
+Across the outer folds of the strictly isolated pathway, the connectomics model achieved:
+
+* **Accuracy:** $0.829 \pm 0.186$
+* **Precision:** $0.774 \pm 0.298$
+* **Sensitivity / Recall:** $0.817 \pm 0.214$
+* **Macro-F1 Score:** $0.786 \pm 0.265$
+* **ROC-AUC:** $0.814 \pm 0.327$
+
+---
+
+## 5. Leakage Assessment
+
+Data leakage impact was quantified using the differential macro-F1 score:
+
+$$\Delta_{\mathrm{Leakage}} = F1_{\mathrm{biased}} - F1_{\mathrm{unbiased}}$$
+
+* **Biased Pathway Macro-F1:** $0.737$
+* **Strictly Isolated Pathway Macro-F1:** $0.786$
+* **$\Delta_{\mathrm{Leakage}}$:** $-0.049$
+
+---
+
+## 6. Interpretability & Visualization
+
+### 6.1 Out-of-Sample Tree SHAP (`shap v0.46`)
+
+* Calculated strictly on unseen outer test folds per CV iteration.
+* Unselected features assigned zero attribution before aggregation across patients.
+* **Top Informative Tracts:** Left sagittal stratum, medial lemniscus, superior fronto-occipital fasciculus.
+* **Non-linear Dependencies:** Observed notably for left medial lemniscus clustering coefficient and left sagittal stratum strength.
+
+### 6.2 Visual Analysis Tools
+
+* **t-SNE Projections:** Contrasted artificial class segregation in biased pipelines against realistic overlapping representations under nested isolation.
+* **Decision Surface Mapping:** Visualized 2D non-linear decision boundaries using high-ranking features (e.g., right posterior thalamic radiation betweenness vs. left sagittal stratum strength).
+* **Tree Inspection:** Hierarchical rule analysis of individual decision trees within the RF ensemble.
 
 ---
 
 ![Connectomica](Images/Figure1.png)
 
-> **Methodological workflow for glioma stratification and WM vulnerability mapping:** Stage 1: Input Data and preprocessing. Integration of multimodal MRI data. (a) Anatomical T1-weighted imaging and (b) DWI data were acquired, co-registered to perform brain extraction, and utilized to compute DTI maps. (c) Personalized tumor masks are manually segmented to delineate neoplastic boundaries. (d) All structural and diffusion datasets are aligned with the Johns Hopkins University (JHU) WM atlas in MNI space to establish anatomical standardization across the cohort. (e) Spatial normalization to atlas space. Subject-specific images were co-registered to a JHU WM atlas. Stage 2: Tumor-masked tractography. Network node definition and structural connectivity matrix construction. (a) Precise mapping and exclusion of tumor-encroached regions are performed to eliminate confounding infiltrative artifacts. (b) Advanced probabilistics diffusion modeling (BEDPOSTX) evaluates fiber tract configurations, generating a 3D structural connectome. (c) Personalized adjacency matrices are built based on streamline connection probabilities. (d) Multi-level feature extraction yields a high-dimensional profile composed of m = 307 continuous graph-theoretical metrics. Stage 3: Explainable ML strategy. (a) Feature selection using a forward sequential feature selection (SFS). (b) Hyperparameter optimization and classification using a random forest ensemble validate via repeated nested 5-fold stratified cross-validation. (c) Model transparency and localized feature attributions are computed utilizing tree SHAP values to quantify tract-specific WM disruptions.
+> **Methodological workflow for glioma stratification and WM vulnerability mapping:** Stage 1: Input Data and preprocessing. Integration of multimodal MRI data. (a) Anatomical T1-weighted imaging and (b) DWI data were acquired, co-registered to perform brain extraction, and utilized to compute DTI maps. (c) Personalized tumor masks are manually segmented to delineate neoplastic boundaries. (d) All structural and diffusion datasets are aligned with the Johns Hopkins University (JHU) WM atlas in MNI space to establish anatomical standardization across the cohort. (e) Spatial normalization to atlas space. Subject-specific images were co-registered to a JHU WM atlas. Stage 2: Tumor-masked tractography. Network node definition and structural connectivity matrix construction. (a) Precise mapping and exclusion of tumor-encroached regions are performed to eliminate confounding infiltrative artifacts. (b) Advanced probabilistics diffusion modeling (BEDPOSTX) evaluates fiber tract configurations, generating a 3D structural connectome. (c) Personalized adjacency matrices are built based on streamline connection probabilities. (d) Multi-level feature extraction yields a high-dimensional profile composed of m = 297 continuous graph-theoretical metrics. Stage 3: Explainable ML strategy. (a) Feature selection using a forward sequential feature selection (SFS). (b) Hyperparameter optimization and classification using a random forest ensemble validate via repeated nested 5-fold stratified cross-validation. (c) Model transparency and localized feature attributions are computed utilizing tree SHAP values to quantify tract-specific WM disruptions.
+
 
 
 ## Empirical Results & Performance Summary
 
-* **Demographic & Clinical Baseline:** Demographic analysis demonstrated a median cohort age of 43 years, with no significant differences in age or sex between groups. Glioma grade was significantly associated with hemispheric tumor location ($p = 0.038$), showing left-hemisphere predominance in LGG and right-hemisphere predominance in HGG.
-* **Feature Redundancy & Selection Trajectory:** Hierarchical clustering of the unreduced feature space ($p = 307$) confirmed substantial information redundancy, partitioning the variables into three highly collinear modules. During Forward SFS expansion within the isolated CV loop, the internal validation trajectory was programmatically tracked to identify the absolute global maximum where accuracy peaks before high-dimensional noise degradation sets in.
-* **The Optimal Connectomic Subspace:** The final isolated optimal subset of features capable of discriminating malignancy grades is identified per fold. For post-hoc explanation and feature space projections, the pipeline evaluates the parsimonious sub-space belonging to the first isolation fold.
-* **Post-Hoc Data Leakage Validation:** The robust data leakage analysis proved the mathematical necessity of the isolated nested framework, printing out the final performance discrepancies and inflation deltas across all primary metrics (Accuracy, Precision, Recall, and F1-score) to quantify the exact selection bias induced by upfront feature spaces.
-* **Superiority Over Clinical Baselines**: While the comparative clinical baseline model (age, sex, and tumor hemisphere) achieved a strong classification performance ($\text{Mean AUC} = 0.82$), the pure structural connectomics pipeline substantially outperformed it, yielding a $\text{Mean AUC} = 0.92$. Notably, integrating clinical variables into the network features (Combined Model) did not produce any further diagnostic improvement ($\text{Mean AUC} = 0.92$). This ceiling effect mathematically demonstrates that tumor-masked structural connectograms capture high-dimensional pathophysiological signatures that inherently absorb and outperform traditional epidemiological variables.
-* **Game-Theoretic Interpretability:** The implementation of tree-based SHAP values dismantled the algorithmic "black box" by computing a comprehensive evaluation framework: (1) SHAP Summary Scatter plots for global density mapping, (2) Global Feature Importance Bar charts, (3) Automated Dependence Trajectory plots for the top 2 predictive features, (4) Single-sample Local Force plots for individual patient profiling, and (5) Decision Plots to map feature attribution accumulation paths.
+**Demographic & Clinical Characteristics**
+The study population comprised 35 patients (20 LGG [57.1%], 15 HGG [42.9%]) with a median cohort age of 43 years (range: 23–71). No significant differences were observed between LGG and HGG regarding age ($p = 0.442$), sex ($p = 0.310$), or lobar extension ($p = 0.535$). High-grade lesions exhibited significantly higher tumor volume ($159,248.7\text{ mm}^3$ vs. $64,227.7\text{ mm}^3$, $p = 0.012$). Hemispheric location differed significantly ($p = 0.024$), with left-hemisphere predominance in LGG (70.0%) and right-hemisphere predominance in HGG (60.0%).
+
+**Feature Redundancy & Unsupervised Clustering**
+Agglomerative hierarchical clustering of the $296$ non-constant features identified three distinct intercorrelated feature modules at a cophenetic distance threshold of 6.5 (Cluster 1: 107 features; Cluster 2: 90 features; Cluster 3: 99 features), confirming extensive multicollinearity ($R \approx 1.0$).
+
+**Classification Performance & Leakage Prevention**
+Under a strict, leakage-free nested cross-validation scheme (Isolated Pipeline), the pure structural connectomics model achieved a mean ROC-AUC of $0.814 \pm 0.327$ ($95\%$ CI: $0.500\text{--}1.000$), an accuracy of $82.9 \pm 18.6\%$, and a macro F1-score of $0.786 \pm 0.265$. Comparing this against the biased pipeline ($0.798 \pm 0.178$ AUC, $74.3\%$ accuracy) confirmed that dynamic per-fold feature selection prevents artificial data-leakage distortions.
+
+**Model Sensitivity & Clinical Baselines**
+
+* **Clinical-Radiological Baseline (M3):** Achieving a mean AUC of $0.817 \pm 0.149$ and macro F1-score of $0.809 \pm 0.136$, conventional clinical and volumetric indicators showed solid discriminative capacity.
+* **Non-Zero Connectomics Model (M5):** Restricting connectomic analysis to features non-zero across all subjects yielded a mean AUC of $0.833 \pm 0.167$ and a macro F1-score of $0.727 \pm 0.256$, significantly reducing cross-validation variance.
+* **Combined Multimodal Model (M6):** Integrating clinical-radiological parameters with structural connectomic features yielded the highest discriminative performance with a mean AUC of $0.933 \pm 0.109$ ($95\%$ CI: $0.798\text{--}1.068$) and macro F1-score of $0.774 \pm 0.271$, demonstrating that connectomics provides complementary, synergistic pathophysiological signals.
+
+**Game-Theoretic Interpretability (SHAP Analysis)**
+Out-of-sample Tree SHAP attributions highlighted PageRank Centrality in the left sagittal stratum (mean $\vert{}\text{SHAP}\vert{} = 0.066$, selected in 60.0% of outer folds), Strength Centrality in the left sagittal stratum (mean $\vert{}\text{SHAP}\vert{} = 0.033$, selected in 60.0% of folds), Clustering Coefficient in the left cerebral WM (mean $\vert{}\text{SHAP}\vert{} = 0.032$, 40.0% of folds), Closeness Centrality in the middle cerebellar peduncle (mean $\vert{}\text{SHAP}\vert{} = 0.032$), and Betweenness Centrality in the right posterior thalamic radiation (mean $\vert{}\text{SHAP}\vert{} = 0.019$, 60.0% of folds) as the primary tract-specific drivers of glioma grade discrimination.
 ---
 
 ## Reproducibility & Data Availability

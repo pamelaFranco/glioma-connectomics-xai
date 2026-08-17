@@ -1,106 +1,125 @@
-###############################################################################
-# This code was developed by Dr. Pamela Franco as part of the project 
-# "Quantifying White Matter Disruption in Gliomas via Tumor-Masked Structural 
-# Connectomics and Explainable Machine Learning: A Pilot Study ".
-#
-# This code performs a comprehensive machine learning pipeline tailored for 
-# CLASSIFICATION analysis on glioma tractography and radiomics data.
-#
-#   Author:      Dr. Pamela Franco
-#   Time-stamp:  2026-06-08
-#   Repository:  https://github.com/pamelaFranco/glioma-ml-tractography
-#   E-mail:      pamela.franco@unab.cl / pafranco@uc.cl
-###############################################################################
+import os
+import re
+import warnings
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.patches import Rectangle
-import re
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_validate, StratifiedKFold
+import seaborn as sns
+
+from sklearn.model_selection import (
+    RepeatedStratifiedKFold, 
+    StratifiedKFold, 
+    GridSearchCV,
+    cross_validate
+)
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.feature_selection import SequentialFeatureSelector
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_curve, auc, confusion_matrix
+from sklearn.feature_selection import SelectKBest, f_classif, SequentialFeatureSelector
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.manifold import TSNE
-import numpy as np
-import seaborn as sns
-import os 
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import (
+    accuracy_score, 
+    precision_score, 
+    recall_score, 
+    f1_score, 
+    roc_auc_score,
+    roc_curve,
+    auc,
+    confusion_matrix
+)
 from sklearn.cluster import AgglomerativeClustering
 from scipy.cluster.hierarchy import dendrogram, linkage
+from sklearn.manifold import TSNE
 from sklearn.tree import export_graphviz
 import graphviz
 import shap
 
-# Reset mathtext settings to default to avoid rendering crashes
+# Enable Intel Acceleration if available
+try:
+    from sklearnex import patch_sklearn
+    patch_sklearn()
+except ImportError:
+    pass
+
+warnings.filterwarnings("ignore")
+
+# Configure Matplotlib default settings (Strict Native LaTeX with Computer Modern Roman)
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Computer Modern Roman', 'Computer Modern', 'cmr10']
+plt.rcParams['mathtext.fontset'] = 'cm'
 
-###############################################################################
-# SECTION 2.5.1: LOAD DATA & PREPROCESSING
-###############################################################################
-path = r'C:\Users\pfran\Desktop\Connectomics Github\Dataset'  
-data_filename = 'dataset_conectomica_with_labels.csv'
-newData = os.path.join(path, data_filename)  
+# -----------------------------------------------------------------------------
+# 1. SETUP PATHS AND PREPROCESSING CONFIGURATION
+# -----------------------------------------------------------------------------
+DATA_PATH = r'C:\Users\pfran\Desktop\Connectomics\Connectomics Github\Dataset'
+DATA_FILENAME = 'dataset_conectomicas_with_patient_details.csv'
+RESULTS_PATH = r'C:\Users\pfran\Desktop\Connectomics\Connectomics Github\Results'
 
-RESULTS_PATH = r'C:\Users\pfran\Desktop\Connectomics Github\Results'
-if not os.path.exists(RESULTS_PATH):
-    os.makedirs(RESULTS_PATH)
+os.makedirs(RESULTS_PATH, exist_ok=True)
+full_data_path = os.path.join(DATA_PATH, DATA_FILENAME)
 
-if not os.path.exists(newData):
-    newData = data_filename
+if not os.path.exists(full_data_path):
+    full_data_path = DATA_FILENAME
 
-# Reading the dataset (n = 35 patients)
-df_raw = pd.read_csv(newData)
+df_raw = pd.read_csv(full_data_path)
 
-# Safe target and features extraction
-label = df_raw['labels'].values
-features = df_raw.drop(columns=['labels', 'Patient_ID'], errors='ignore')
+# -----------------------------------------------------------------------------
+# 2. DYNAMIC TARGET & ID COLUMN DETECTION AND PREPROCESSING
+# -----------------------------------------------------------------------------
+label_candidates = ['labels', 'label', 'Class', 'target', 'group', 'Grade', 'Diagnosis', 'grado']
+target_col = next((col for col in label_candidates if col in df_raw.columns), None)
 
-if label.dtype == 'object':
-    label, _ = pd.factorize(label)
+if target_col is None:
+    raise KeyError(f"Could not automatically detect target column in dataset. Available columns: {list(df_raw.columns)}")
 
-# Sanitize feature headers by eliminating special characters using regex
-features = features.rename(columns=lambda x: re.sub('[^*A-Za-z0-9_ ]+', '', x))
-feature_names = list(features.columns)
+print(f"Target column detected: '{target_col}'")
 
-# Handle missing, infinite and constant values upfront (Data Curation Routine)
-if features.isnull().sum().any():
-    print("Warning: Missing values detected upfront. Imputing with the column mean.")
-    features = features.fillna(features.mean())
+id_candidates = ['Patient_ID', 'Subject_ID', 'ID', 'Patient', 'Subject', 'Subjects', 'std_id']
+id_cols_to_drop = [col for col in id_candidates if col in df_raw.columns]
 
-if np.isinf(features).values.any():
-    print("Warning: Infinite values detected. Replacing with NaNs and imputing.")
-    features = features.replace([np.inf, -np.inf], np.nan).fillna(features.mean())
+labels_raw = df_raw[target_col].values
+features_df = df_raw.drop(columns=[target_col] + id_cols_to_drop, errors='ignore')
 
-constant_features = [col for col in features.columns if features[col].std() == 0]
+if labels_raw.dtype == 'object':
+    y_vec, _ = pd.factorize(labels_raw)
+else:
+    y_vec = labels_raw.astype(int)
+
+y = pd.Series(y_vec)
+
+features_df = features_df.rename(columns=lambda x: re.sub(r'[^a-zA-Z0-9_]+', '_', x))
+X_raw = features_df.copy()
+
+imputer_init = SimpleImputer(strategy='mean')
+X_clean_np = imputer_init.fit_transform(X_raw.replace([np.inf, -np.inf], np.nan))
+X_clean = pd.DataFrame(X_clean_np, columns=X_raw.columns)
+
+constant_features = [col for col in X_clean.columns if X_clean[col].std() == 0]
 if constant_features:
     print(f"Warning: Detected {len(constant_features)} constant features with zero variance. Removing them.")
-    features = features.drop(columns=constant_features)
-    feature_names = list(features.columns)
+    X_clean = X_clean.drop(columns=constant_features)
 
-X_clean = features
-y = pd.Series(label)
+print(f"Dataset Loaded Successfully: N = {X_clean.shape[0]} samples, P = {X_clean.shape[1]} features.")
 
-# Scale specifically for global exploratory visualizations (Clustermap/Univariate)
 scaler_exploratory = StandardScaler()
 X_scaled_exploratory = pd.DataFrame(scaler_exploratory.fit_transform(X_clean), columns=X_clean.columns)
 
-###############################################################################
-# HIERARCHICAL CLUSTERING BLOCK
-###############################################################################
-correlation_matrix = X_scaled_exploratory.corr()
+# -----------------------------------------------------------------------------
+# 3. HIERARCHICAL CLUSTERING & EXPLORATORY DENDROGRAM / CLUSTERMAP
+# -----------------------------------------------------------------------------
+print("\n[Visual 1 & 2] Generating Hierarchical Clustering Dendrogram and Clustermap...")
+correlation_matrix = X_scaled_exploratory.corr().fillna(0)
 
-if correlation_matrix.isnull().any().any():
-    correlation_matrix = correlation_matrix.fillna(0)
+distance_threshold = 6.5
+model_agg = AgglomerativeClustering(n_clusters=None, linkage='average', distance_threshold=distance_threshold)
+cluster_cols = model_agg.fit_predict(correlation_matrix.T)
+cluster_rows = model_agg.fit_predict(correlation_matrix)
 
-distance_threshold = 6.5 
-
-model = AgglomerativeClustering(n_clusters=None, linkage='average', distance_threshold=distance_threshold)
-cluster_cols = model.fit_predict(correlation_matrix.T)  
-cluster_rows = model.fit_predict(correlation_matrix)  
-
-n_clusters = len(np.unique(cluster_cols)) 
+n_clusters = len(np.unique(cluster_cols))
 colors = plt.cm.get_cmap('plasma', n_clusters) if hasattr(plt.cm, 'get_cmap') else plt.colormaps['plasma']
 
 col_colors = [colors(i) for i in cluster_cols]
@@ -111,56 +130,47 @@ cluster_texts = [f"Cluster {i+1}: {cluster_features[i]:02d} features" for i in r
 
 Z = linkage(correlation_matrix, method='average', metric='euclidean')
 
-# Dendrogram Plot
-plt.figure(figsize=(12, 20)) 
+plt.figure(figsize=(12, 20))
 dendrogram(
-    Z, 
-    labels=correlation_matrix.columns, 
+    Z,
+    labels=correlation_matrix.columns,
     color_threshold=distance_threshold,
-    orientation='left',    
-    leaf_font_size=6       
+    orientation='left',
+    leaf_font_size=6
 )
-
-plt.axvline(x=distance_threshold, color='r', linestyle='--', label=f'Distance Threshold = {distance_threshold}')  
+plt.axvline(x=distance_threshold, color='r', linestyle='--', label=f'Distance Threshold = {distance_threshold}')
 plt.xlabel('Distance', fontsize=12)
 plt.ylabel('Features', fontsize=12)
-
 plt.savefig(os.path.join(RESULTS_PATH, 'dendogram.png'), format='png', dpi=300, bbox_inches='tight')
 plt.close()
 
-# Clustermap Plot
-g = sns.clustermap(correlation_matrix, cmap='viridis',
-                   figsize=(30, 30),  
-                   annot=False,  
-                   xticklabels=True,  
-                   yticklabels=True,  
-                   row_cluster=True,  
-                   col_cluster=True,  
-                   tree_kws={'linewidths': 2},  
-                   row_colors=row_colors,  
-                   col_colors=col_colors  
-                   )
-
+g = sns.clustermap(
+    correlation_matrix, cmap='viridis',
+    figsize=(30, 30),
+    annot=False,
+    xticklabels=True,
+    yticklabels=True,
+    row_cluster=True,
+    col_cluster=True,
+    tree_kws={'linewidths': 2},
+    row_colors=row_colors,
+    col_colors=col_colors
+)
 g.ax_heatmap.set_xticklabels(g.ax_heatmap.get_xticklabels(), rotation=90, fontsize=6)
 g.ax_heatmap.set_yticklabels(g.ax_heatmap.get_yticklabels(), fontsize=6)
 g.ax_cbar.set_position((0.9, .02, .03, .09))
 g.ax_cbar.set_ylabel('Correlation (R)')
 
-y_position = 0.94  
-box_height = 0.025  
-box_width = 0.08   
-spacing = 0.002     
+y_position = 0.94
+box_height = 0.025
+box_width = 0.08
+spacing = 0.002
 
 for i, cluster_text in enumerate(cluster_texts):
     current_color = colors(i)
     rect = Rectangle(
-        (0.9, y_position - box_height),  
-        box_width,  
-        box_height,  
-        transform=g.fig.transFigure,
-        facecolor=current_color,
-        edgecolor='none',
-        zorder=3  
+        (0.9, y_position - box_height), box_width, box_height,
+        transform=g.fig.transFigure, facecolor=current_color, edgecolor='none', zorder=3
     )
     g.fig.add_artist(rect)
     text_y_center = y_position - (box_height / 2)
@@ -170,31 +180,22 @@ for i, cluster_text in enumerate(cluster_texts):
     text_color = 'black' if luminance > 0.5 else 'white'
 
     g.fig.text(
-        0.905,          
-        text_y_center,  
-        cluster_text,
-        transform=g.fig.transFigure,
-        horizontalalignment='left',
-        verticalalignment='center',  
-        fontsize=14,    
-        color=text_color,
-        zorder=4        
+        0.905, text_y_center, cluster_text,
+        transform=g.fig.transFigure, horizontalalignment='left', verticalalignment='center',
+        fontsize=14, color=text_color, zorder=4
     )
-
     y_position -= (box_height + spacing)
-    
-plt.savefig(os.path.join(RESULTS_PATH, 'clustermap.png'), format='png', dpi=300)  
+
+plt.savefig(os.path.join(RESULTS_PATH, 'clustermap.png'), format='png', dpi=300)
 plt.close()
 
-
-###############################################################################
-# BASELINE UNIVARIATE SCREENING: L2-REGULARIZED LOGISTIC REGRESSION (PARETO)
-###############################################################################
-print("\n Running Baseline Univariate Screening (L2 Logistic Regression)...")
+# -----------------------------------------------------------------------------
+# 4. BASELINE UNIVARIATE SCREENING: L2-LOGISTIC REGRESSION (PARETO)
+# -----------------------------------------------------------------------------
+print("\n[Visual 3] Running Baseline Univariate Screening (L2 Logistic Regression Pareto)...")
 lr_baseline = LogisticRegression(penalty='l2', solver='liblinear', random_state=42, max_iter=1000)
 lr_baseline.fit(X_scaled_exploratory, y)
 
-# Extract absolute weights and build a Pareto Distribution Ranking
 absolute_weights = np.abs(lr_baseline.coef_[0])
 sorted_indices = np.argsort(absolute_weights)[::-1]
 top_20_indices = sorted_indices[:20]
@@ -203,24 +204,20 @@ top_20_features = [X_clean.columns[i] for i in top_20_indices]
 top_20_weights = absolute_weights[top_20_indices]
 
 plt.figure(figsize=(12, 6))
-plt.rcParams['text.usetex'] = True
-bars = plt.bar(range(20), top_20_weights, color='teal', edgecolor='teal', alpha=0.85)
+plt.bar(range(20), top_20_weights, color='teal', edgecolor='teal', alpha=0.85)
 plt.xticks(range(20), top_20_features, rotation=45, ha='right', fontsize=9)
-#plt.xlim(-0.5, 20.5)
 plt.ylabel('Absolute Log-Odds Coefficients Weight')
 plt.xlabel('Graph-Theoretic Node Metric / Connectomic Edge Vector')
-plt.rcParams['text.usetex'] = True
-#plt.title('Pareto Distribution Weight Ranking: Top 20 Baseline Components', fontweight='bold')
 plt.grid(axis='y', linestyle='--', alpha=0.4)
 plt.grid(axis='x', linestyle='--', alpha=0.4)
 plt.tight_layout()
-plt.savefig(os.path.join(RESULTS_PATH, 'logistic_regression_pareto_ranking.png'), dpi=300)
+plt.savefig(os.path.join(RESULTS_PATH, 'logistic_regression_pareto_ranking.png'), format='png', dpi=300)
 plt.close()
 
-###############################################################################
-# SECTION 2.5.2 & 2.5.3: FEATURE SELECTION & VALIDATION LOOP ARCHITECTURES
-###############################################################################
-print("\n Computing Global Feature Selection to simulate Data Leakage...")
+# -----------------------------------------------------------------------------
+# 5. REPEATED NESTED CROSS-VALIDATION & BIASED COMPARISON PIPELINE
+# -----------------------------------------------------------------------------
+print("\n[Biased vs Unbiased Analysis] Computing Global Feature Selection for Leakage Baseline...")
 scaler_leakage = StandardScaler()
 X_scaled_leakage = pd.DataFrame(scaler_leakage.fit_transform(X_clean), columns=X_clean.columns)
 
@@ -230,405 +227,360 @@ global_sfs = SequentialFeatureSelector(
 )
 global_sfs.fit(X_scaled_leakage, y)
 global_chosen_features = X_clean.columns[global_sfs.get_support()].tolist()
-print(f"Globally selected features (Biased Sub-space): {global_chosen_features}")
 
-print("\n Initializing Parallel Validation Loops for Data Leakage Analysis...")
-outer_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-inner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+N_REPEATS = 1
+N_SPLITS_OUTER = 5
+N_SPLITS_INNER = 5 
+BASE_SEED = 42
 
-fold_metrics_records = []
+outer_cv = RepeatedStratifiedKFold(n_splits=N_SPLITS_OUTER, n_repeats=N_REPEATS, random_state=BASE_SEED)
+
+fold_records = []
+biased_records = []
+selected_features_all_folds = []
+feature_counts_all_folds = []
+
 biased_tprs, unbiased_tprs = [], []
+biased_aucs, unbiased_aucs = [], []
 mean_fpr = np.linspace(0, 1, 100)
-
 biased_cumulative_cm = np.zeros((2, 2))
 unbiased_cumulative_cm = np.zeros((2, 2))
 
 best_isolated_estimators = []
 isolated_features_per_fold = []
 
-max_features_to_evaluate = min(30, X_clean.shape[1])
-fold1_feature_accuracies_mean = [] 
-fold1_feature_accuracies_std = []
-fold1_ranked_features = []
+shap_records = []
+n_samples_total = len(X_clean)
+n_features_total = X_clean.shape[1]
 
-print(" Launching Outer Cross-Validation Loop...")
-for fold, (train_idx, test_idx) in enumerate(outer_cv.split(X_clean, y)):
-    X_train_fold, X_test_fold = X_clean.iloc[train_idx], X_clean.iloc[test_idx]
-    y_train_fold, y_test_fold = y.iloc[train_idx], y.iloc[test_idx]
-    
-    # --- METRIC CORRECTION: PLIEGUE ISOLATION ---
+total_iterations = N_REPEATS * N_SPLITS_OUTER
+print(f"\nStarting {N_REPEATS}x{N_SPLITS_OUTER}-Fold Repeated Nested Cross-Validation...")
+
+for fold_idx, (train_idx, test_idx) in enumerate(outer_cv.split(X_clean, y)):
+    X_train, X_test = X_clean.iloc[train_idx], X_clean.iloc[test_idx]
+    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+
     scaler = StandardScaler()
-    X_train_fold_scaled = pd.DataFrame(scaler.fit_transform(X_train_fold), columns=X_clean.columns)
-    X_test_fold_scaled = pd.DataFrame(scaler.transform(X_test_fold), columns=X_clean.columns)
-    
+    X_train_scaled = pd.DataFrame(scaler.fit_transform(X_train), columns=X_clean.columns)
+    X_test_scaled = pd.DataFrame(scaler.transform(X_test), columns=X_clean.columns)
+
     # --- PATHWAY A: BIASED VALIDATION LOOP ---
-    X_train_biased = X_train_fold_scaled[global_chosen_features]
-    X_test_biased = X_test_fold_scaled[global_chosen_features]
+    X_train_biased = X_train_scaled[global_chosen_features]
+    X_test_biased = X_test_scaled[global_chosen_features]
     
     clf_biased = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
-    clf_biased.fit(X_train_biased, y_train_fold)
-    
+    clf_biased.fit(X_train_biased, y_train)
     biased_preds = clf_biased.predict(X_test_biased)
     biased_probs = clf_biased.predict_proba(X_test_biased)[:, 1]
     
-    biased_cumulative_cm += confusion_matrix(y_test_fold, biased_preds)
-    
-    b_acc = accuracy_score(y_test_fold, biased_preds)
-    b_prec = precision_score(y_test_fold, biased_preds, average='macro', zero_division=0)
-    b_rec = recall_score(y_test_fold, biased_preds, average='macro', zero_division=0) 
-    b_f1 = f1_score(y_test_fold, biased_preds, average='macro', zero_division=0)
-    
-    fpr_b, tpr_b, _ = roc_curve(y_test_fold, biased_probs)
+    biased_cumulative_cm += confusion_matrix(y_test, biased_preds)
+    fpr_b, tpr_b, _ = roc_curve(y_test, biased_probs)
     biased_tprs.append(np.interp(mean_fpr, fpr_b, tpr_b))
     biased_tprs[-1][0] = 0.0
+    
+    b_acc = accuracy_score(y_test, biased_preds)
+    b_prec = precision_score(y_test, biased_preds, average="macro", zero_division=0)
+    b_rec = recall_score(y_test, biased_preds, average="macro", zero_division=0)
+    b_f1 = f1_score(y_test, biased_preds, average="macro", zero_division=0)
+    
+    try:
+        biased_auc_score = roc_auc_score(y_test, biased_probs)
+    except ValueError:
+        biased_auc_score = np.nan
+    biased_aucs.append(biased_auc_score)
+
+    biased_records.append({
+        'Accuracy': b_acc, 'Precision': b_prec, 'Sensitivity_Recall': b_rec, 'F1_Score': b_f1, 'ROC_AUC': biased_auc_score
+    })
 
     # --- PATHWAY B: STRICTLY ISOLATED NESTED PATHWAY ---
-    rf_selector = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
-    rf_selector.fit(X_train_fold_scaled, y_train_fold)
-    
-    importances = rf_selector.feature_importances_
-    indices_ranking = np.argsort(importances)[::-1]
-    ranked_features_fold = X_clean.columns[indices_ranking].tolist()
-    
-    feature_means_cv = []
-    feature_stds_cv = []
-    
-    for k in range(1, max_features_to_evaluate + 1):
-        top_k_features = ranked_features_fold[:k]
-        X_train_k = X_train_fold_scaled[top_k_features]
-        
-        cv_results = cross_validate(
-            RandomForestClassifier(n_estimators=50, random_state=42, class_weight='balanced'),
-            X_train_k, y_train_fold, cv=inner_cv, scoring='accuracy', n_jobs=-1
-        )
-        feature_means_cv.append(np.mean(cv_results['test_score']))
-        feature_stds_cv.append(np.std(cv_results['test_score']))
-    
-    if fold == 0:
-        fold1_feature_accuracies_mean = feature_means_cv
-        fold1_feature_accuracies_std = feature_stds_cv
-        fold1_ranked_features = ranked_features_fold[:max_features_to_evaluate]
-    
-    optimal_k = np.argmax(feature_means_cv) + 1
-    local_chosen_features = ranked_features_fold[:optimal_k]
-    isolated_features_per_fold.append(local_chosen_features)
-    
-    X_train_unbiased = X_train_fold_scaled[local_chosen_features]
-    X_test_unbiased = X_test_fold_scaled[local_chosen_features]
-    
+    max_features_sfs = min(10, X_train.shape[1])
+    candidate_n_features = [3, 5, 8, 10]
+    candidate_n_features = [n for n in candidate_n_features if n <= max_features_sfs]
+    if not candidate_n_features:
+        candidate_n_features = [max_features_sfs]
+
+    candidate_k_anova = [15, 25, 50]
+    candidate_k_anova = [k for k in candidate_k_anova if k <= X_train.shape[1]]
+    if not candidate_k_anova:
+        candidate_k_anova = [X_train.shape[1]]
+
+    anova_selector = SelectKBest(score_func=f_classif)
+
+    sfs_selector = SequentialFeatureSelector(
+        estimator=RandomForestClassifier(
+            n_estimators=30, max_depth=4, random_state=BASE_SEED, class_weight="balanced", n_jobs=1
+        ),
+        direction="forward", scoring="f1_macro", cv=5, n_jobs=1
+    )
+
+    pipe = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+        ("prefilter", anova_selector),
+        ("selector", sfs_selector),
+        ("rf", RandomForestClassifier(random_state=BASE_SEED, class_weight="balanced", n_jobs=1))
+    ])
+
     param_grid = {
-        'n_estimators': [100, 200, 300],
-        'max_depth': [None, 3, 5, 10],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': ['sqrt', 'log2']
+        "prefilter__k": candidate_k_anova,
+        "selector__n_features_to_select": candidate_n_features,
+        "rf__n_estimators": [100, 200],
+        "rf__max_depth": [3, 5],
+        "rf__min_samples_split": [4, 8],
+        "rf__max_features": ["sqrt"]
     }
-    grid_search = GridSearchCV(
-        estimator=RandomForestClassifier(random_state=42, class_weight='balanced'),
-        param_grid=param_grid, cv=inner_cv, scoring='f1_macro', n_jobs=-1
-    )
-    grid_search.fit(X_train_unbiased, y_train_fold)
-    clf_unbiased = grid_search.best_estimator_
-    best_isolated_estimators.append(clf_unbiased)
+
+    inner_cv = StratifiedKFold(n_splits=N_SPLITS_INNER, shuffle=True, random_state=BASE_SEED + fold_idx)
+    grid_search = GridSearchCV(estimator=pipe, param_grid=param_grid, cv=inner_cv, scoring="f1_macro", n_jobs=-1)
+    grid_search.fit(X_train, y_train)
+
+    best_model = grid_search.best_estimator_
+
+    # Outer Evaluation
+    y_pred = best_model.predict(X_test)
+    y_prob = best_model.predict_proba(X_test)[:, 1]
+
+    unbiased_cumulative_cm += confusion_matrix(y_test, y_pred)
+    fpr_u, tpr_u, _ = roc_curve(y_test, y_prob)
+    interp_tpr = np.interp(mean_fpr, fpr_u, tpr_u)
+    interp_tpr[0] = 0.0
+    unbiased_tprs.append(interp_tpr)
+
+    acc = accuracy_score(y_test, y_pred)
+    prec = precision_score(y_test, y_pred, average="macro", zero_division=0)
+    rec = recall_score(y_test, y_pred, average="macro", zero_division=0)
+    f1 = f1_score(y_test, y_pred, average="macro", zero_division=0)
+    try:
+        auc_score = roc_auc_score(y_test, y_prob)
+    except ValueError:
+        auc_score = np.nan
     
-    best_params = grid_search.best_params_
+    unbiased_aucs.append(auc_score)
+
+    prefilter_mask = best_model.named_steps["prefilter"].get_support()
+    prefiltered_cols = X_train.columns[prefilter_mask]
+    sfs_mask = best_model.named_steps["selector"].get_support()
+    chosen_features_fold = prefiltered_cols[sfs_mask].tolist()
+
+    selected_features_all_folds.extend(chosen_features_fold)
+    feature_counts_all_folds.append(len(chosen_features_fold))
     
-    unbiased_preds = clf_unbiased.predict(X_test_unbiased)
-    unbiased_probs = clf_unbiased.predict_proba(X_test_unbiased)[:, 1]
-    
-    unbiased_cumulative_cm += confusion_matrix(y_test_fold, unbiased_preds)
-    
-    u_acc = accuracy_score(y_test_fold, unbiased_preds)
-    u_prec = precision_score(y_test_fold, unbiased_preds, average='macro', zero_division=0)
-    u_rec = recall_score(y_test_fold, unbiased_preds, average='macro', zero_division=0) 
-    u_f1 = f1_score(y_test_fold, unbiased_preds, average='macro', zero_division=0)
-    
-    fpr_u, tpr_u, _ = roc_curve(y_test_fold, unbiased_probs)
-    unbiased_tprs.append(np.interp(mean_fpr, fpr_u, tpr_u))
-    unbiased_tprs[-1][0] = 0.0
-    
-    fold_metrics_records.append({
-        'Fold': fold + 1,
-        'Biased_Accuracy': b_acc, 'Biased_Precision': b_prec, 'Biased_Sensitivity_Recall': b_rec, 'Biased_F1_Score': b_f1,
-        'Unbiased_Accuracy': u_acc, 'Unbiased_Precision': u_prec, 'Unbiased_Sensitivity_Recall': u_rec, 'Unbiased_F1_Score': u_f1,
-        'Unbiased_Optimal_Features_Count': optimal_k, 'Unbiased_Params': str(best_params)
+    best_isolated_estimators.append(best_model.named_steps["rf"])
+    isolated_features_per_fold.append(chosen_features_fold)
+
+    # --- STRICT OUT-OF-SAMPLE SHAP CALCULATION PER FOLD ---
+    fitted_imputer = best_model.named_steps["imputer"]
+    fitted_scaler = best_model.named_steps["scaler"]
+    fitted_prefilter = best_model.named_steps["prefilter"]
+    fitted_selector = best_model.named_steps["selector"]
+    fitted_rf = best_model.named_steps["rf"]
+
+    X_test_imp = fitted_imputer.transform(X_test)
+    X_test_scl = fitted_scaler.transform(X_test_imp)
+    X_test_pf = fitted_prefilter.transform(X_test_scl)
+    X_test_sel = fitted_selector.transform(X_test_pf)
+
+    explainer = shap.TreeExplainer(fitted_rf)
+    shap_vals_fold = explainer.shap_values(X_test_sel)
+
+    if isinstance(shap_vals_fold, list):
+        shap_vals_fold = shap_vals_fold[1]
+    elif len(shap_vals_fold.shape) == 3:
+        shap_vals_fold = shap_vals_fold[:, :, 1]
+
+    for i_sub, patient_idx in enumerate(test_idx):
+        full_shap_vector = np.zeros(n_features_total)
+        for j_sel, feature_name in enumerate(chosen_features_fold):
+            orig_col_idx = X_clean.columns.get_loc(feature_name)
+            full_shap_vector[orig_col_idx] = shap_vals_fold[i_sub, j_sel]
+
+        repeat_id = fold_idx // N_SPLITS_OUTER
+        shap_records.append({
+            'patient_idx': patient_idx,
+            'repeat': repeat_id,
+            'fold': fold_idx,
+            'shap_vector': full_shap_vector
+        })
+
+    fold_records.append({
+        'Fold': fold_idx + 1,
+        'Accuracy': acc,
+        'Precision': prec,
+        'Sensitivity_Recall': rec,
+        'F1_Score': f1,
+        'ROC_AUC': auc_score,
+        'Optimal_K_Features': len(chosen_features_fold),
+        'Selected_Features': ", ".join(chosen_features_fold),
+        'Best_Params': str(grid_search.best_params_)
     })
+
+df_nested_results = pd.DataFrame(fold_records)
+df_biased_results = pd.DataFrame(biased_records)
+
+# Export the per-fold metrics and hyperparameters table directly to CSV
+df_nested_results.to_csv(os.path.join(RESULTS_PATH, 'pipeline_fold_metrics_and_hyperparameters.csv'), index=False)
+print("\n[Table Export] Per-fold metrics and hyperparameters exported successfully.")
+
+# -----------------------------------------------------------------------------
+# 6. STATISTICAL PERFORMANCE COMPARISON TABLE & BOOTSTRAP 95% CIs
+# -----------------------------------------------------------------------------
+def compute_bootstrap_ci(data, n_bootstraps=2000, ci=95):
+    boot_means = []
+    rng = np.random.RandomState(BASE_SEED)
+    clean_data = np.array(data)[~np.isnan(data)]
+    for _ in range(n_bootstraps):
+        sample = rng.choice(clean_data, size=len(clean_data), replace=True)
+        boot_means.append(np.mean(sample))
+    lower = np.percentile(boot_means, (100 - ci) / 2)
+    upper = np.percentile(boot_means, 100 - (100 - ci) / 2)
+    return np.mean(clean_data), lower, upper
+
+comparative_rows = []
+for metric in ['Accuracy', 'Precision', 'Sensitivity_Recall', 'F1_Score', 'ROC_AUC']:
+    b_mean, b_ci_low, b_ci_high = compute_bootstrap_ci(df_biased_results[metric])
+    b_std = df_biased_results[metric].std()
     
-    print(f"    Fold {fold+1} Completed | Biased F1: {b_f1:.4f} | Isolated F1: {u_f1:.4f} | Features: {optimal_k}")
+    u_mean, u_ci_low, u_ci_high = compute_bootstrap_ci(df_nested_results[metric])
+    u_std = df_nested_results[metric].std()
+    
+    delta = b_mean - u_mean
+    
+    comparative_rows.append({
+        'Metric': metric,
+        'Biased_Mean': b_mean,
+        'Biased_Std': b_std,
+        'Biased_95_CI_Lower': b_ci_low,
+        'Biased_95_CI_Upper': b_ci_high,
+        'Unbiased_Mean': u_mean,
+        'Unbiased_Std': u_std,
+        'Unbiased_95_CI_Lower': u_ci_low,
+        'Unbiased_95_CI_Upper': u_ci_high,
+        'Inflation_Delta': delta
+    })
 
-df_fold_metrics = pd.DataFrame(fold_metrics_records)
-df_fold_metrics.to_csv(os.path.join(RESULTS_PATH, 'pipeline_fold_metrics_and_hyperparameters.csv'), index=False)
+df_comparison = pd.DataFrame(comparative_rows)
+df_comparison.to_csv(os.path.join(RESULTS_PATH, 'comparative_performance_summary_ci.csv'), index=False)
+print("[Table Export] Comparative statistical table with 95% CIs exported successfully.")
 
-###############################################################################
-# SECTION 2.5.4: POST-HOC STATISTICAL EVALUATION & EXPORT
-###############################################################################
-mean_biased_f1 = df_fold_metrics['Biased_F1_Score'].mean()
-mean_unbiased_f1 = df_fold_metrics['Unbiased_F1_Score'].mean()
-leakage_delta = mean_biased_f1 - mean_unbiased_f1
+# Feature Selection Stability Export across Folds
+feature_counts = pd.Series(selected_features_all_folds).value_counts()
+df_feature_stability = pd.DataFrame({
+    'Feature_Name': feature_counts.index,
+    'Selection_Frequency_Out_of_Folds': feature_counts.values,
+    'Selection_Percentage': (feature_counts.values / total_iterations) * 100
+})
+df_feature_stability.to_csv(os.path.join(RESULTS_PATH, 'feature_selection_stability.csv'), index=False)
 
-leakage_summary = {
-    'Metric': ['Accuracy', 'Precision', 'Sensitivity_Recall', 'F1_Score'],
-    'Biased_Mean': [df_fold_metrics['Biased_Accuracy'].mean(), df_fold_metrics['Biased_Precision'].mean(), df_fold_metrics['Biased_Sensitivity_Recall'].mean(), mean_biased_f1],
-    'Biased_Std': [df_fold_metrics['Biased_Accuracy'].std(), df_fold_metrics['Biased_Precision'].std(), df_fold_metrics['Biased_Sensitivity_Recall'].std(), df_fold_metrics['Biased_F1_Score'].std()],
-    'Unbiased_Mean': [df_fold_metrics['Unbiased_Accuracy'].mean(), df_fold_metrics['Unbiased_Precision'].mean(), df_fold_metrics['Unbiased_Sensitivity_Recall'].mean(), mean_unbiased_f1],
-    'Unbiased_Std': [df_fold_metrics['Unbiased_Accuracy'].std(), df_fold_metrics['Unbiased_Precision'].std(), df_fold_metrics['Unbiased_Sensitivity_Recall'].std(), df_fold_metrics['Unbiased_F1_Score'].std()],
-    'Inflation_Delta': [
-        df_fold_metrics['Biased_Accuracy'].mean() - df_fold_metrics['Unbiased_Accuracy'].mean(),
-        df_fold_metrics['Biased_Precision'].mean() - df_fold_metrics['Unbiased_Precision'].mean(),
-        df_fold_metrics['Biased_Sensitivity_Recall'].mean() - df_fold_metrics['Unbiased_Sensitivity_Recall'].mean(),
-        leakage_delta
-    ]
-}
-pd.DataFrame(leakage_summary).to_csv(os.path.join(RESULTS_PATH, 'data_leakage_statistical_analysis.csv'), index=False)
+# -----------------------------------------------------------------------------
+# 7. COMPARATIVE METRIC PLOTS
+# -----------------------------------------------------------------------------
+print("\n[Visual 4 & 5] Generating Comparative ROC Curves and Confusion Matrices...")
 
-# PLOT COMPARATIVE ROC CURVES
-plt.figure(figsize=(8, 6))
-mean_tpr_biased = np.mean(biased_tprs, axis=0); mean_tpr_biased[-1] = 1.0
-mean_tpr_unbiased = np.mean(unbiased_tprs, axis=0); mean_tpr_unbiased[-1] = 1.0
+plt.figure(figsize=(9, 7))
 
-plt.plot(mean_fpr, mean_tpr_biased, color='red', linestyle='--', label='Biased Pipeline (Mean AUC = %0.2f)' % auc(mean_fpr, mean_tpr_biased), lw=2)
-plt.plot(mean_fpr, mean_tpr_unbiased, color='blue', linestyle='-', label='Strictly Isolated Pipeline (Mean AUC = %0.2f)' % auc(mean_fpr, mean_tpr_unbiased), lw=2)
-plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Chance level (AUC = 0.50)')
-plt.xlim([-0.05, 1.05]); plt.ylim([-0.05, 1.05])
-plt.xlabel('False Positive Rate'); plt.ylabel('True Positive Rate')
-#plt.title('Receiver Operating Characteristic (ROC) Comparison', fontweight='bold')
-plt.legend(loc="lower right"); plt.grid(True, alpha=0.3); plt.tight_layout()
-plt.savefig(os.path.join(RESULTS_PATH, 'comparative_roc_curve.png'))
+mean_tpr_b = np.mean(biased_tprs, axis=0)
+mean_tpr_b[-1] = 1.0
+
+mean_tpr_u = np.mean(unbiased_tprs, axis=0)
+mean_tpr_u[-1] = 1.0
+
+mean_auc_b = auc(mean_fpr, mean_tpr_b)
+std_auc_b = np.std(biased_aucs)
+
+mean_auc_u = auc(mean_fpr, mean_tpr_u)
+std_auc_u = np.std(unbiased_aucs)
+
+b_auc_mean_bs, b_auc_ci_low, b_auc_ci_high = compute_bootstrap_ci(biased_aucs, ci=95)
+u_auc_mean_bs, u_auc_ci_low, u_auc_ci_high = compute_bootstrap_ci(unbiased_aucs, ci=95)
+
+legend_label_biased = (
+    r'Biased Pipeline (Mean AUC = ' f'{mean_auc_b:.3g}' 
+    r' $\pm$ ' f'{std_auc_b:.3g}, '
+    f'95\\% CI [{b_auc_ci_low:.3g}, {b_auc_ci_high:.3g}])'
+)
+
+plt.plot(
+    mean_fpr, mean_tpr_b, color='red', linestyle='--',
+    label=legend_label_biased, lw=2
+)
+
+legend_label_unbiased = (
+    r'\textbf{Isolated Pipeline} (Mean AUC = ' f'{mean_auc_u:.3g}' 
+    r' $\pm$ ' f'{std_auc_u:.3g}, '
+    f'95\\% CI [{u_auc_ci_low:.3g}, {u_auc_ci_high:.3g}])'
+)
+
+plt.plot(
+    mean_fpr, mean_tpr_u, color='blue', linestyle='-',
+    label=legend_label_unbiased, lw=2.5
+)
+
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label=r'Chance level (AUC = 0.500)')
+
+plt.xlim([-0.02, 1.02])
+plt.ylim([-0.02, 1.02])
+plt.xlabel(r'\textbf{False Positive Rate} ($1 - \text{Specificity}$)', fontsize=11)
+plt.ylabel(r'\textbf{True Positive Rate} ($\text{Sensitivity}$)', fontsize=11)
+plt.title(r'\textbf{Receiver Operating Characteristic (ROC) Curve}', fontsize=12, pad=10)
+plt.legend(loc="lower right", fontsize=8.5, frameon=True)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig(os.path.join(RESULTS_PATH, 'comparative_roc_curve.png'), format='png', dpi=300)
 plt.close()
 
-# PLOT COMPREHENSIVE EMPIRICAL CONFUSION MATRICES
+# Visual 5: Confusion Matrices
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-sns.heatmap(biased_cumulative_cm, annot=True, fmt='.0f', cmap='Reds', ax=axes[0], cbar=False,
-            xticklabels=['LGG', 'HGG'], yticklabels=['LGG', 'HGG'])
-axes[0].set_title('Biased Pipeline: Cumulative CM (Data Leakage)', fontweight='bold')
-axes[0].set_ylabel('True Label'); axes[0].set_xlabel('Predicted Label')
+sns.heatmap(biased_cumulative_cm, annot=True, fmt='.0f', cmap='Reds', ax=axes[0], cbar=False, xticklabels=['LGG', 'HGG'], yticklabels=['LGG', 'HGG'])
+axes[0].set_title(r'\textbf{Biased Pipeline: Cumulative CM (Data Leakage)}', fontweight='bold')
+axes[0].set_ylabel(r'\textbf{True Label}')
+axes[0].set_xlabel(r'\textbf{Predicted Label}')
 
-sns.heatmap(unbiased_cumulative_cm, annot=True, fmt='.0f', cmap='Blues', ax=axes[1], cbar=False,
-            xticklabels=['LGG', 'HGG'], yticklabels=['LGG', 'HGG'])
-axes[1].set_title('Isolated Nested Pipeline: Cumulative CM', fontweight='bold')
-axes[1].set_ylabel('True Label'); axes[1].set_xlabel('Predicted Label')
+sns.heatmap(unbiased_cumulative_cm, annot=True, fmt='.0f', cmap='Blues', ax=axes[1], cbar=False, xticklabels=['LGG', 'HGG'], yticklabels=['LGG', 'HGG'])
+axes[1].set_title(r'\textbf{Isolated Nested Pipeline: Cumulative CM}', fontweight='bold')
+axes[1].set_ylabel(r'\textbf{True Label}')
+axes[1].set_xlabel(r'\textbf{Predicted Label}')
 plt.tight_layout()
-plt.savefig(os.path.join(RESULTS_PATH, 'validation_confusion_matrices.png'), dpi=300)
+plt.savefig(os.path.join(RESULTS_PATH, 'validation_confusion_matrices.png'), format='png', dpi=300)
 plt.close()
 
-# PLOT FEATURE SELECTION ACCURACY CURVE
-plt.figure(figsize=(10, 5))
-features_count = np.arange(1, len(fold1_feature_accuracies_mean) + 1)
-means = np.array(fold1_feature_accuracies_mean)
-stds = np.array(fold1_feature_accuracies_std)
-max_acc_idx = np.argmax(means)
-optimal_num_features = features_count[max_acc_idx]
-max_accuracy = means[max_acc_idx]
+# -----------------------------------------------------------------------------
+# 8. PATIENT-LEVEL SHAP ANALYSIS
+# -----------------------------------------------------------------------------
+print("\n[Visual 7] Aggregating Out-of-Sample Pooled SHAP Attributions...")
+df_shap_all = pd.DataFrame(shap_records)
 
-plt.plot(features_count, means, color='darkblue', marker='o', markersize=4, linestyle='-', alpha=0.8, label='Internal CV Mean Accuracy')
-plt.fill_between(features_count, means - stds, means + stds, color='teal', alpha=0.15, label=r'Variance Shading ($\pm$ SD)')
-plt.plot(optimal_num_features, max_accuracy, color='red', marker='o', markersize=9, linestyle='', label=f'Global Max (N={optimal_num_features}, Acc={max_accuracy:.3f})')
-plt.xlabel('Number of Features Selected (by RF Importance Ranking)')
-plt.ylabel('Validation Accuracy (Internal CV)')
-#plt.title('Feature Selection Process Optimization (Fold 1 Isolation)', fontweight='bold')
-plt.xticks(features_count, rotation=90 if len(features_count) > 20 else 0)
-plt.grid(True, alpha=0.3); plt.legend(loc="lower right"); plt.xlim(1,30)
-plt.tight_layout()
-plt.savefig(os.path.join(RESULTS_PATH, 'sfs_feature_accuracy_curve.png'))
-plt.close()
+patient_shap_matrix = np.zeros((n_samples_total, n_features_total))
+for p_idx in range(n_samples_total):
+    p_vectors = df_shap_all[df_shap_all['patient_idx'] == p_idx]['shap_vector'].tolist()
+    patient_shap_matrix[p_idx, :] = np.mean(p_vectors, axis=0)
 
-###############################################################################
-# EXTRACTION OF ALL SHAP INTERPRETABILITY PLOTS (EXPANDED FRAMEWORK)
-###############################################################################
-print("\n Computing All Possible Additive Feature Attributions using TreeExplainer...")
-target_model = best_isolated_estimators[0]
-target_features = isolated_features_per_fold[0]
+mean_abs_shap = np.mean(np.abs(patient_shap_matrix), axis=0)
+mean_signed_shap = np.mean(patient_shap_matrix, axis=0)
 
-# Generate fold-isolated evaluation scale for localized SHAP tracking
-scaler_shap = StandardScaler()
-X_train_scaled_expl = pd.DataFrame(scaler_shap.fit_transform(X_clean), columns=X_clean.columns)
-X_shap_input = X_train_scaled_expl[target_features]
+df_shap_summary = pd.DataFrame({
+    'Feature_Name': X_clean.columns,
+    'Mean_Absolute_SHAP': mean_abs_shap,
+    'Mean_Signed_SHAP': mean_signed_shap
+}).merge(df_feature_stability, on='Feature_Name', how='left').fillna(0)
 
-plt.rcParams['text.usetex'] = False 
+df_shap_summary = df_shap_summary.sort_values(by='Mean_Absolute_SHAP', ascending=False)
+df_shap_summary.to_csv(os.path.join(RESULTS_PATH, 'patient_level_shap_summary.csv'), index=False)
 
-explainer = shap.TreeExplainer(target_model)
-shap_values_raw = explainer.shap_values(X_shap_input)
+top_20_shap_indices = np.argsort(mean_abs_shap)[::-1][:20]
+top_20_shap_names = X_clean.columns[top_20_shap_indices]
 
-if isinstance(shap_values_raw, list):
-    shap_matrix = shap_values_raw[1]
-elif len(shap_values_raw.shape) == 3:
-    shap_matrix = shap_values_raw[:, :, 1]
-else:
-    shap_matrix = shap_values_raw
+shap_matrix_top20 = patient_shap_matrix[:, top_20_shap_indices]
+X_clean_top20 = X_clean[top_20_shap_names]
 
-# 1. SHAP Summary Density Scatter Plot
-plt.figure(figsize=(11, 7))
-shap.summary_plot(shap_matrix, X_shap_input, show=False)
-plt.rcParams['text.usetex'] = True
-plt.xlabel(r'SHAP interaction value (impact on model output)')
-
-plt.subplots_adjust(bottom=0.20, left=0.35) 
-plt.savefig(os.path.join(RESULTS_PATH, 'shap_1_summary_scatter.png'), dpi=300)
-plt.close()
-
-# 2. SHAP Global Feature Importance Bar Graph
 plt.rcParams['text.usetex'] = False
 plt.figure(figsize=(11, 7))
-shap.summary_plot(shap_matrix, X_shap_input, plot_type="bar", show=False)
+shap.summary_plot(shap_matrix_top20, X_clean_top20, show=False)
 plt.rcParams['text.usetex'] = True
-plt.xlabel(r'mean(|SHAP value|) (average impact magnitude)')
-
-plt.subplots_adjust(bottom=0.20, left=0.35)
-plt.savefig(os.path.join(RESULTS_PATH, 'shap_2_summary_bar.png'), dpi=300)
-plt.close()
-
-# 3. SHAP Feature Dependence Plots (Top 2 Predictive Features)
-for idx, feature_name in enumerate(target_features[:2]):
-    plt.rcParams['text.usetex'] = False
-    plt.figure(figsize=(8, 6))
-    shap.dependence_plot(feature_name, shap_matrix, X_shap_input, show=False)
-    plt.rcParams['text.usetex'] = True
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(RESULTS_PATH, f'shap_3_dependence_{idx+1}_{feature_name}.png'), dpi=300)
-    plt.close()
-
-# 4. SHAP Local Force Plot (Patient 1 Sample Profiling)
-plt.rcParams['text.usetex'] = False
-plt.figure(figsize=(14, 4))
-if hasattr(explainer, 'expected_value'):
-    base_val = explainer.expected_value[1] if isinstance(explainer.expected_value, (list, np.ndarray)) else explainer.expected_value
-    shap.force_plot(base_val, shap_matrix[0, :], X_shap_input.iloc[0, :], matplotlib=True, show=False)
-    plt.rcParams['text.usetex'] = True
-    
-    plt.subplots_adjust(bottom=0.25, left=0.15)
-    plt.savefig(os.path.join(RESULTS_PATH, 'shap_4_local_patient_force.png'), dpi=300)
-plt.close()
-
-# 5. SHAP Decision Plot
-plt.rcParams['text.usetex'] = False
-plt.figure(figsize=(10, 7))
-if hasattr(explainer, 'expected_value'):
-    shap.decision_plot(base_val, shap_matrix, X_shap_input, show=False)
-    plt.rcParams['text.usetex'] = True
-    
-    plt.subplots_adjust(bottom=0.18, left=0.35)
-    plt.savefig(os.path.join(RESULTS_PATH, 'shap_5_decision_trajectory.png'), dpi=300)
-plt.close()
-
-###############################################################################
-# RANDOM FOREST TOPOLOGY: SINGLE DECISION TREE EXPORT
-###############################################################################
-print("\n Exporting single decision tree structural layout...")
-try:
-    # Temporarily clean font defaults so they don't break box constraints inside graphviz rendering
-    old_usetex = plt.rcParams['text.usetex']
-    plt.rcParams['text.usetex'] = False
-    
-    single_tree = target_model.estimators_[0]
-    
-    # Map 'Class_0' to 'LGG' and 'Class_1' to 'HGG' with consistent formatting
-    dot_data = export_graphviz(
-        single_tree, out_file=None, max_depth=3,
-        feature_names=target_features, class_names=['LGG', 'HGG'],
-        filled=True, rounded=True, special_characters=True
-    )
-    
-    # Standardize fonts and ensure text constraints dynamically fit inside the rendering blocks
-    dot_data = dot_data.replace('fontname="helvetica"', 'fontname="Arial"')
-    # Add a global graph attribute to force nodes to fit text smoothly if needed
-    dot_data = dot_data.replace('node [', 'node [fontname="Arial", fontsize=6, ')
-    
-    graph = graphviz.Source(dot_data)
-    graph.render(os.path.join(RESULTS_PATH, 'random_forest_individual_tree'), format='png', cleanup=True)
-    print(" Single decision tree exported successfully as PNG.")
-    
-    # Revert to normal structural configuration safely
-    plt.rcParams['text.usetex'] = old_usetex
-except Exception as e:
-    print(f" Notice: Local Graphviz engine configuration could not build tree layout. Error caught safely: {e}")
-###############################################################################
-# DECISION BOUNDARY SURFACE PLOT (Top 2 Isolated Features)
-###############################################################################
-if len(target_features) >= 2:
-    feat1, feat2 = target_features[0], target_features[1]
-    X_boundary = X_train_scaled_expl[[feat1, feat2]]
-    
-    clf_surface = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
-    clf_surface.fit(X_boundary, y)
-    
-    x_min, x_max = X_boundary[feat1].min() - 1, X_boundary[feat1].max() + 1
-    y_min, y_max = X_boundary[feat2].min() - 1, X_boundary[feat2].max() + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.02), np.arange(y_min, y_max, 0.02))
-    
-    Z_mesh = clf_surface.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
-    
-    plt.rcParams['text.usetex'] = False
-    plt.figure(figsize=(9, 7))
-    
-    plt.contourf(xx, yy, Z_mesh, alpha=0.3, cmap='coolwarm')
-    
-    scatter = plt.scatter(X_boundary[feat1], X_boundary[feat2], c=y, edgecolor='k', alpha=0.8, cmap='coolwarm')
-    
-    plt.xlabel(feat1)
-    plt.ylabel(feat2)
-    
-    plt.rcParams['text.usetex'] = True
-    
-    class_labels = ['LGG', 'HGG']
-    handles, _ = scatter.legend_elements()
-    plt.legend(handles, class_labels, title="Tumor Grade", loc="upper right", frameon=True)
-    
-    plt.grid(True, alpha=0.2)
-    plt.tight_layout()
-    plt.savefig(os.path.join(RESULTS_PATH, 'decision_boundary_surface.png'), dpi=300)
-    plt.close()
-
-###############################################################################
-# HIGH-DIMENSIONAL VISUAL SEGREGATION: t-SNE COORDINATE EMBEDDINGS
-###############################################################################
-print("\n Projecting High-Dimensional Space Transformations using t-SNE Projections...")
-plt.rcParams['text.usetex'] = False 
-
-# 1. t-SNE before feature selection (All Curated Features Space)
-tsne_pre = TSNE(n_components=2, perplexity=10, random_state=42, init='pca', learning_rate='auto')
-X_tsne_pre = tsne_pre.fit_transform(X_train_scaled_expl)
-
-# 2. t-SNE after feature selection (Isolated Parsimonious Sub-space from Fold 1)
-X_scaled_isolated = X_train_scaled_expl[target_features]
-tsne_post = TSNE(n_components=2, perplexity=10, random_state=42, init='pca', learning_rate='auto')
-X_tsne_post = tsne_post.fit_transform(X_scaled_isolated)
-
-# Plot side-by-side t-SNE manifolds to track cohort segregation boundaries transformation
-fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-# Define clinical class labels mapping Class 0 -> LGG and Class 1 -> HGG
-class_labels = ['LGG', 'HGG']
-
-# Panel A: Pre-selection
-scatter_pre = axes[0].scatter(X_tsne_pre[:, 0], X_tsne_pre[:, 1], c=y, cmap='bwr', edgecolor='k', alpha=0.8, s=60)
-axes[0].set_xlabel('t-SNE Dimension 1')
-axes[0].set_ylabel('t-SNE Dimension 2')
-axes[0].grid(True, alpha=0.2)
-
-# Re-mapping Legend Labels for Panel A
-handles_pre, _ = scatter_pre.legend_elements()
-axes[0].legend(handles_pre, class_labels, loc="upper right", title="Tumor Grade")
-
-# Panel B: Post-selection
-scatter_post = axes[1].scatter(X_tsne_post[:, 0], X_tsne_post[:, 1], c=y, cmap='bwr', edgecolor='k', alpha=0.8, s=60)
-axes[1].set_xlabel('t-SNE Dimension 1')
-axes[1].set_ylabel('t-SNE Dimension 2')
-axes[1].grid(True, alpha=0.2)
-
-# Re-mapping Legend Labels for Panel B
-handles_post, _ = scatter_post.legend_elements()
-axes[1].legend(handles_post, class_labels, loc="upper right", title="Tumor Grade")
-
-# Reactivate LaTeX formatting for the text/titles if required by your environment
-plt.rcParams['text.usetex'] = True
-
-axes[0].set_title('A: High-Dimensional Curation Space (Pre-Selection, p=307)', fontweight='bold')
-axes[1].set_title('B: Isolated Parsimonious Sub-space (Post-Selection, p=Optimal)', fontweight='bold')
-fig.suptitle('Connectomic Topological Space Modification vs. Class Segregation (t-SNE Projection)', fontsize=14, fontweight='bold')
-
+plt.xlabel(r'Out-of-Sample Pooled SHAP Value (Impact on Prediction)')
+plt.title(r'\textbf{Out-of-Sample Candidate Connectomic Features}', fontsize=12, pad=12)
 plt.tight_layout()
-plt.savefig(os.path.join(RESULTS_PATH, 'tsne_class_segregation_comparison.png'), dpi=300)
+plt.savefig(os.path.join(RESULTS_PATH, 'shap_summary_beeswarm.png'), format='png', dpi=300)
 plt.close()
 
-print(f"\n Pipeline finalized. All comparative figures and CSV datasets exported to: {RESULTS_PATH}")
+print(f"\nPipeline finalized successfully! All outputs exported to:\n{RESULTS_PATH}")
