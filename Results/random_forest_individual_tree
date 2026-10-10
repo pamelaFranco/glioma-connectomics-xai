@@ -1,0 +1,17 @@
+digraph Tree {
+node [fontname="Arial", fontsize=6, shape=box, style="filled, rounded", color="black", fontname="Arial"] ;
+edge [fontname="Arial"] ;
+0 [label=<Clustering_Fornix_cres_Stria_terminalis_R &le; 0.183<br/>gini = 0.497<br/>samples = 28<br/>value = [18, 10]<br/>class = LGG>, fillcolor="#f3c7a7"] ;
+1 [label=<Clustering_Fornix_cres_Stria_terminalis_R &le; -0.637<br/>gini = 0.405<br/>samples = 22<br/>value = [18, 4]<br/>class = LGG>, fillcolor="#eb9d65"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label=<gini = -0.0<br/>samples = 2<br/>value = [0, 2]<br/>class = HGG>, fillcolor="#399de5"] ;
+1 -> 2 ;
+3 [label=<Strength_Sagittal_stratum_L &le; 1.928<br/>gini = 0.308<br/>samples = 20<br/>value = [18, 2]<br/>class = LGG>, fillcolor="#e88f4f"] ;
+1 -> 3 ;
+4 [label=<gini = 0.135<br/>samples = 18<br/>value = [18, 0]<br/>class = LGG>, fillcolor="#e58139"] ;
+3 -> 4 ;
+5 [label=<gini = 0.0<br/>samples = 2<br/>value = [0, 2]<br/>class = HGG>, fillcolor="#399de5"] ;
+3 -> 5 ;
+6 [label=<gini = 0.0<br/>samples = 6<br/>value = [0, 6]<br/>class = HGG>, fillcolor="#399de5"] ;
+0 -> 6 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+}

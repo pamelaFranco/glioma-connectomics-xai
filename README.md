@@ -1,6 +1,6 @@
-# Tumor-Masked Structural Connectomics for Assessing Tract-Specific White Matter Disruption Associated with Glioma Aggressiveness: An Interpretable Machine Learning Pilot Study 
+# Tumor-Masked Structural Connectomics Reveals Tract-Specific White Matter Disruption Associated with Glioma Aggressiveness: An Explainable Machine Learning Pilot Study
 
-> **Note for Reviewers:** This repository hosts the official computational framework and reproducible workflows corresponding to the abstract submitted to the **Nueroradiology**
+> **Note for Reviewers:** This repository hosts the computational framework and reproducible workflows associated with the accepted manuscript in **Neuroradiology**
 
 ![Tractografía del Paciente 1](Images/Paciente1wm_dti.fib.gif)
 
@@ -477,7 +477,7 @@ If you find this pipeline useful for your research, please cite our preliminary 
   author={Franco, Pamela and Montalba, Cristian and Espinoza, Ignacio and Cornejo, M. Daniela and Torres, Francisco and Bennett, Carlos and Chabert, Steren and Salas, Rodrigo},
   journal={Neuroradiology},
   year={2026},
-  note={Submitted for publication / Under review}
+  note={Accepted for publication}
 }
 ```
 
